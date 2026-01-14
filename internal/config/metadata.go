@@ -1,0 +1,110 @@
+package config
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"time"
+)
+
+// BranchMetadata represents metadata for a tracked branch
+type BranchMetadata struct {
+	Parent  string    `json:"parent"`
+	Tracked bool      `json:"tracked"`
+	Created time.Time `json:"created"`
+}
+
+// Metadata represents the stack metadata
+type Metadata struct {
+	Branches map[string]*BranchMetadata `json:"branches"`
+}
+
+// LoadMetadata reads the metadata from the specified path
+func LoadMetadata(path string) (*Metadata, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Return empty metadata if file doesn't exist yet
+			return &Metadata{
+				Branches: make(map[string]*BranchMetadata),
+			}, nil
+		}
+		return nil, fmt.Errorf("failed to read metadata: %w", err)
+	}
+
+	var metadata Metadata
+	if err := json.Unmarshal(data, &metadata); err != nil {
+		return nil, fmt.Errorf("failed to parse metadata: %w", err)
+	}
+
+	// Ensure map is initialized
+	if metadata.Branches == nil {
+		metadata.Branches = make(map[string]*BranchMetadata)
+	}
+
+	return &metadata, nil
+}
+
+// Save writes the metadata to the specified path
+func (m *Metadata) Save(path string) error {
+	data, err := json.MarshalIndent(m, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal metadata: %w", err)
+	}
+
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		return fmt.Errorf("failed to write metadata: %w", err)
+	}
+
+	return nil
+}
+
+// TrackBranch adds or updates a branch in the metadata
+func (m *Metadata) TrackBranch(branch, parent string) {
+	m.Branches[branch] = &BranchMetadata{
+		Parent:  parent,
+		Tracked: true,
+		Created: time.Now(),
+	}
+}
+
+// UntrackBranch removes a branch from the metadata
+func (m *Metadata) UntrackBranch(branch string) {
+	delete(m.Branches, branch)
+}
+
+// IsTracked checks if a branch is tracked
+func (m *Metadata) IsTracked(branch string) bool {
+	_, exists := m.Branches[branch]
+	return exists
+}
+
+// GetParent returns the parent branch of a branch
+func (m *Metadata) GetParent(branch string) (string, bool) {
+	meta, exists := m.Branches[branch]
+	if !exists {
+		return "", false
+	}
+	return meta.Parent, true
+}
+
+// GetChildren returns all children of a branch
+func (m *Metadata) GetChildren(branch string) []string {
+	children := []string{}
+	for name, meta := range m.Branches {
+		if meta.Parent == branch {
+			children = append(children, name)
+		}
+	}
+	return children
+}
+
+// UpdateParent updates the parent of a branch
+func (m *Metadata) UpdateParent(branch, newParent string) error {
+	meta, exists := m.Branches[branch]
+	if !exists {
+		return fmt.Errorf("branch %s is not tracked", branch)
+	}
+	meta.Parent = newParent
+	return nil
+}
