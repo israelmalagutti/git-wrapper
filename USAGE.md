@@ -126,6 +126,51 @@ Show all child branches of the current branch.
 gw children
 ```
 
+### Stack Maintenance
+
+#### `gw stack restack`
+Ensure each branch in the current stack is based on its parent, rebasing if necessary. This command recursively restacks all children branches.
+
+```bash
+# Restack current branch and all its children
+gw stack restack
+
+# Short aliases
+gw stack r
+gw stack fix
+gw stack f
+```
+
+**What it does:**
+- Checks if the current branch needs rebasing onto its parent
+- Performs the rebase if the parent has moved forward
+- Recursively restacks all children branches
+- Handles conflicts interactively (prompts you to resolve and continue)
+
+**When to use:**
+- After making changes to a parent branch
+- When trunk has moved forward and you want to update your stack
+- To fix "out of sync" branches in your stack
+
+**Aliases:** `r`, `fix`, `f`
+
+#### `gw sync`
+Clean up metadata and validate stack structure.
+
+```bash
+# Interactive cleanup
+gw sync
+
+# Force cleanup without prompts
+gw sync -f
+```
+
+**What it does:**
+- Removes metadata for branches that no longer exist in git
+- Validates trunk branch has no parent
+- Detects cycles in branch relationships
+- Ensures stack structure is valid
+
 ## Workflow Examples
 
 ### Creating a Stack of Features
