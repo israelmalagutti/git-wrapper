@@ -171,6 +171,49 @@ gw sync -f
 - Detects cycles in branch relationships
 - Ensures stack structure is valid
 
+#### `gw modify`
+Modify the current branch by amending its commit or creating a new commit. Automatically restacks descendants.
+
+```bash
+# Amend current commit
+gw modify
+
+# Amend with message
+gw modify -m "Updated commit message"
+
+# Stage all changes and amend
+gw modify -a
+
+# Stage interactively and amend
+gw modify -p
+
+# Create new commit instead of amending
+gw modify -c -m "New commit message"
+
+# Short alias
+gw m -a
+```
+
+**What it does:**
+- Stages changes if requested (with `-a` or `-p`)
+- Amends the current commit (default) or creates a new commit (with `-c`)
+- Automatically restacks all children branches after the change
+- Handles conflicts during restacking interactively
+
+**Flags:**
+- `-a, --all` - Stage all changes before committing
+- `-p, --patch` - Interactively stage changes (prompts for each hunk)
+- `-c, --commit` - Create a new commit instead of amending
+- `-m, --message` - Specify commit message
+
+**When to use:**
+- When you want to make changes to the current branch's commit
+- After code review feedback on a stacked branch
+- To add forgotten changes to the current commit
+- To split changes into a new commit
+
+**Alias:** `m`
+
 ## Workflow Examples
 
 ### Creating a Stack of Features
