@@ -11,6 +11,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	checkoutTrunk        bool
+	checkoutShowUntracked bool
+	checkoutStack        bool
+)
+
 var checkoutCmd = &cobra.Command{
 	Use:     "checkout [branch]",
 	Aliases: []string{"co"},
@@ -21,14 +27,20 @@ If no branch is specified, opens an interactive selector showing
 all branches with their stack context.
 
 Example:
-  gw checkout feat-1    # Switch to feat-1
-  gw co feat-2          # Switch to feat-2 (alias)
-  gw checkout           # Interactive branch selector`,
+  gw checkout feat-1       # Switch to feat-1
+  gw co feat-2             # Switch to feat-2 (alias)
+  gw checkout              # Interactive branch selector
+  gw checkout -t           # Switch to trunk
+  gw checkout -s           # Interactive selector (current stack only)
+  gw co --show-untracked   # Show untracked branches in selector`,
 	RunE: runCheckout,
 }
 
 func init() {
 	rootCmd.AddCommand(checkoutCmd)
+	checkoutCmd.Flags().BoolVarP(&checkoutTrunk, "trunk", "t", false, "Checkout the trunk branch")
+	checkoutCmd.Flags().BoolVarP(&checkoutShowUntracked, "show-untracked", "u", true, "Include untracked branches in interactive selection")
+	checkoutCmd.Flags().BoolVarP(&checkoutStack, "stack", "s", false, "Only show current stack in interactive selection")
 }
 
 func runCheckout(cmd *cobra.Command, args []string) error {
@@ -56,6 +68,12 @@ func runCheckout(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to build stack: %w", err)
 	}
 
+	// Handle --trunk flag
+	if checkoutTrunk {
+		targetBranch := cfg.Trunk
+		return checkoutBranch(repo, s, targetBranch)
+	}
+
 	// Determine which branch to checkout
 	var targetBranch string
 	if len(args) > 0 {
@@ -70,6 +88,48 @@ func runCheckout(cmd *cobra.Command, args []string) error {
 		if len(branches) == 0 {
 			return fmt.Errorf("no branches found")
 		}
+
+		// Filter branches based on flags
+		filteredBranches := []string{}
+		currentBranch, _ := repo.GetCurrentBranch()
+
+		for _, branch := range branches {
+			// Handle --stack flag: only show current stack
+			if checkoutStack {
+				// Include if it's in the path from trunk to current, or is a descendant
+				path := s.FindPath(currentBranch)
+				inPath := false
+				for _, node := range path {
+					if node.Name == branch {
+						inPath = true
+						break
+					}
+				}
+
+				// Also include descendants of current branch
+				isDescendant := false
+				if currentNode := s.GetNode(currentBranch); currentNode != nil {
+					isDescendant = isInDescendants(s, currentNode, branch)
+				}
+
+				if !inPath && !isDescendant {
+					continue
+				}
+			}
+
+			// Handle --show-untracked flag
+			if !checkoutShowUntracked && !metadata.IsTracked(branch) && branch != cfg.Trunk {
+				continue
+			}
+
+			filteredBranches = append(filteredBranches, branch)
+		}
+
+		if len(filteredBranches) == 0 {
+			return fmt.Errorf("no branches match the filter criteria")
+		}
+
+		branches = filteredBranches
 
 		// Sort branches: trunk first, then tracked, then others
 		sort.Slice(branches, func(i, j int) bool {
@@ -132,6 +192,11 @@ func runCheckout(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	return checkoutBranch(repo, s, targetBranch)
+}
+
+// checkoutBranch performs the actual checkout and displays stack context
+func checkoutBranch(repo *git.Repo, s *stack.Stack, targetBranch string) error {
 	// Verify branch exists
 	if !repo.BranchExists(targetBranch) {
 		return fmt.Errorf("branch '%s' does not exist", targetBranch)
@@ -171,4 +236,17 @@ func runCheckout(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// isInDescendants checks if a branch is a descendant of a node
+func isInDescendants(s *stack.Stack, node *stack.Node, branchName string) bool {
+	for _, child := range node.Children {
+		if child.Name == branchName {
+			return true
+		}
+		if isInDescendants(s, child, branchName) {
+			return true
+		}
+	}
+	return false
 }
