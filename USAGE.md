@@ -214,6 +214,111 @@ gw m -a
 
 **Alias:** `m`
 
+### Advanced Stack Operations
+
+#### `gw move [target]`
+Rebase the current branch onto a different parent branch. Automatically restacks all descendants.
+
+```bash
+# Interactive selection of target branch
+gw move
+
+# Move current branch onto feat-base
+gw move feat-base
+
+# Using --onto flag
+gw move -o feat-base
+
+# Short alias
+gw mv feat-base
+```
+
+**What it does:**
+- Changes the parent of the current branch
+- Rebases the current branch onto the new parent
+- Automatically restacks all children branches
+- Handles conflicts interactively
+- Prevents circular dependencies (won't move onto descendants)
+
+**Flags:**
+- `-o, --onto` - Specify target branch
+
+**When to use:**
+- Reorganizing your stack structure
+- Moving a feature branch to depend on a different parent
+- Extracting a branch from one stack to another
+- Fixing incorrect parent-child relationships
+
+**Alias:** `mv`
+
+#### `gw fold`
+Fold the current branch's changes into its parent branch. This merges the current branch into its parent and deletes it (unless --keep is used).
+
+```bash
+# Fold current branch into parent
+gw fold
+
+# Keep current branch instead of deleting it
+gw fold --keep
+
+# Skip confirmation prompt
+gw fold --force
+gw fold -f
+```
+
+**What it does:**
+- Merges current branch's commits into parent (squash merge)
+- Updates all children to point to the parent
+- Restacks all descendants
+- Deletes the current branch (unless --keep is used)
+- Prompts for confirmation before proceeding
+
+**Flags:**
+- `-k, --keep` - Keep current branch name instead of deleting it
+- `-f, --force` - Skip confirmation prompt
+
+**When to use:**
+- When you realize a branch should have been part of its parent
+- Simplifying a stack by collapsing intermediate branches
+- Cleaning up unnecessary branches after code review changes
+- Combining multiple small changes into a single branch
+
+#### `gw delete [branch]`
+Delete a branch and its metadata from the stack. Children will be restacked onto the parent.
+
+```bash
+# Interactive selection of branch to delete
+gw delete
+
+# Delete specific branch
+gw delete feat-old
+
+# Delete without confirmation
+gw delete -f feat-old
+
+# Short aliases
+gw d feat-old
+gw rm feat-old
+```
+
+**What it does:**
+- Deletes the specified branch (or current branch if none specified)
+- Removes the branch from gw metadata
+- Updates children to point to the deleted branch's parent
+- Restacks all descendants
+- Prompts for confirmation before proceeding
+
+**Flags:**
+- `-f, --force` - Delete without confirmation
+
+**When to use:**
+- Removing completed or abandoned feature branches
+- Cleaning up your stack after merging to trunk
+- Removing branches that are no longer needed
+- Restructuring your stack by removing intermediate branches
+
+**Aliases:** `d`, `remove`, `rm`
+
 ## Workflow Examples
 
 ### Creating a Stack of Features
