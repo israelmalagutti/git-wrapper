@@ -38,6 +38,11 @@ func BuildStack(repo *git.Repo, cfg *config.Config, metadata *config.Metadata) (
 		stack.Current = currentBranch
 	}
 
+	// Verify trunk exists
+	if !repo.BranchExists(cfg.Trunk) {
+		return nil, fmt.Errorf("trunk branch '%s' does not exist", cfg.Trunk)
+	}
+
 	// Create trunk node
 	trunkSHA, _ := repo.GetBranchCommit(cfg.Trunk)
 	trunk := &Node{
@@ -50,9 +55,14 @@ func BuildStack(repo *git.Repo, cfg *config.Config, metadata *config.Metadata) (
 	stack.Trunk = trunk
 	stack.Nodes[cfg.Trunk] = trunk
 
-	// Create nodes for all tracked branches
+	// Create nodes for all tracked branches (skip if branch doesn't exist)
 	for branchName := range metadata.Branches {
 		if branchName == cfg.Trunk {
+			continue
+		}
+
+		// Skip branches that don't exist in git
+		if !repo.BranchExists(branchName) {
 			continue
 		}
 

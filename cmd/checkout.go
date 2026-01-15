@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/israelmalagutti/git-wrapper/internal/config"
 	"github.com/israelmalagutti/git-wrapper/internal/git"
 	"github.com/israelmalagutti/git-wrapper/internal/stack"
@@ -29,17 +31,17 @@ all branches with their stack context.
 Example:
   gw checkout feat-1       # Switch to feat-1
   gw co feat-2             # Switch to feat-2 (alias)
-  gw checkout              # Interactive branch selector
+  gw checkout              # Interactive branch selector (tracked only)
   gw checkout -t           # Switch to trunk
   gw checkout -s           # Interactive selector (current stack only)
-  gw co --show-untracked   # Show untracked branches in selector`,
+  gw co -u                 # Show untracked branches in selector`,
 	RunE: runCheckout,
 }
 
 func init() {
 	rootCmd.AddCommand(checkoutCmd)
 	checkoutCmd.Flags().BoolVarP(&checkoutTrunk, "trunk", "t", false, "Checkout the trunk branch")
-	checkoutCmd.Flags().BoolVarP(&checkoutShowUntracked, "show-untracked", "u", true, "Include untracked branches in interactive selection")
+	checkoutCmd.Flags().BoolVarP(&checkoutShowUntracked, "show-untracked", "u", false, "Include untracked branches in interactive selection")
 	checkoutCmd.Flags().BoolVarP(&checkoutStack, "stack", "s", false, "Only show current stack in interactive selection")
 }
 
@@ -187,7 +189,13 @@ func runCheckout(cmd *cobra.Command, args []string) error {
 			},
 		}
 
-		if err := survey.AskOne(prompt, &targetBranch, survey.WithValidator(survey.Required)); err != nil {
+		err = survey.AskOne(prompt, &targetBranch, survey.WithValidator(survey.Required))
+		if err != nil {
+			// Handle ESC/Ctrl+C gracefully
+			if errors.Is(err, terminal.InterruptErr) {
+				fmt.Println("Cancelled.")
+				return nil
+			}
 			return fmt.Errorf("failed to get branch selection: %w", err)
 		}
 	}
@@ -233,6 +241,8 @@ func checkoutBranch(repo *git.Repo, s *stack.Stack, targetBranch string) error {
 			}
 			fmt.Println()
 		}
+	} else {
+		fmt.Println("This branch is not tracked by Git-Wrapper")
 	}
 
 	return nil

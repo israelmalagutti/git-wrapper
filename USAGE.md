@@ -1,0 +1,189 @@
+# Git Wrapper (gw) - Usage Guide
+
+## Interactive Mode Commands
+
+Many `gw` commands use interactive prompts to help you select branches, enter names, or make decisions. Here are the keyboard shortcuts available in interactive mode:
+
+### Navigation & Selection
+- **Arrow Keys (↑/↓)** - Navigate up and down through options
+- **Tab** - Move to next option (in Select prompts)
+- **Enter** - Confirm selection or submit input
+- **Type to filter** - Start typing to filter options (in Select prompts)
+
+### Vim Mode
+- **ESC** - Toggle vim mode on/off
+- **j** - Move down (when vim mode is enabled)
+- **k** - Move up (when vim mode is enabled)
+
+### Editing (Input prompts)
+- **Backspace/Delete** - Remove characters
+- **Ctrl+W** - Delete word
+- **Ctrl+U** - Delete line
+
+### Control
+- **Ctrl+C** - Cancel and exit the current prompt
+
+## Command Reference
+
+### Initialization
+
+#### `gw init`
+Initialize git-wrapper in your repository. This sets up the configuration and identifies your trunk branch (usually `main` or `master`).
+
+```bash
+gw init
+```
+
+### Branch Management
+
+#### `gw create [name]`
+Create a new branch stacked on top of the current branch. The new branch is automatically tracked with the current branch as its parent.
+
+```bash
+# Interactive mode - prompts for branch name
+gw create
+
+# Direct mode - specify branch name
+gw create feat-auth
+```
+
+If you have staged changes, you'll be prompted to commit them to the new branch.
+
+#### `gw track`
+Start tracking an existing branch. You'll be prompted to select a parent branch from your stack.
+
+```bash
+gw track
+```
+
+#### `gw checkout [options]`
+Smart branch checkout with interactive selection. Shows stack context for each branch.
+
+```bash
+# Interactive mode - select from list of branches
+gw co
+
+# Quick checkout to trunk
+gw co -t
+gw co --trunk
+
+# Show untracked branches in selection
+gw co -u
+gw co --show-untracked
+
+# Only show branches in current stack
+gw co -s
+gw co --stack
+```
+
+**Aliases:** `co`, `checkout`, `switch`
+
+### Visualization
+
+#### `gw log [options]`
+Display a visual tree representation of your branch stack.
+
+```bash
+# Compact view
+gw log
+gw log --short
+
+# Detailed view with commit messages
+gw log --long
+```
+
+Output format:
+```
+● *main (trunk) [fe9d15f]
+├── feat-1 [a1cb412]
+└── feat-2 [a1cb412]
+```
+
+Legend:
+- `●` - Current branch (filled circle)
+- `○` - Other branches (hollow circle)
+- `*` - Indicator for current branch name
+- `[hash]` - Commit SHA
+
+#### `gw info`
+Show detailed information about the current branch, including parent, children, depth in stack, and path to trunk.
+
+```bash
+gw info
+```
+
+#### `gw parent`
+Show the parent branch of the current branch.
+
+```bash
+gw parent
+```
+
+#### `gw children`
+Show all child branches of the current branch.
+
+```bash
+gw children
+```
+
+## Workflow Examples
+
+### Creating a Stack of Features
+
+```bash
+# Start from trunk
+git checkout main
+
+# Create first feature branch
+gw create feat-database
+# ... make changes, commit ...
+
+# Create second feature stacked on first
+gw create feat-api
+# ... make changes, commit ...
+
+# Create third feature stacked on second
+gw create feat-ui
+# ... make changes, commit ...
+
+# View your stack
+gw log
+```
+
+### Navigating Your Stack
+
+```bash
+# View the stack
+gw log
+
+# Quickly jump to trunk
+gw co -t
+
+# Interactively select a branch to checkout
+gw co
+
+# Only see branches in current stack
+gw co -s
+```
+
+### Tracking Existing Branches
+
+```bash
+# Checkout an existing branch
+git checkout feat-existing
+
+# Track it in gw
+gw track
+# Select parent branch when prompted
+
+# Verify it's tracked
+gw info
+```
+
+## Tips
+
+1. **Use vim mode** for faster navigation if you're comfortable with j/k keys. Press ESC to toggle.
+2. **Type to filter** in Select prompts to quickly find branches in large stacks.
+3. **Use `gw co -t`** as a quick way to return to trunk from anywhere.
+4. **Press Ctrl+C** anytime to safely cancel an operation.
+5. **Check `gw log`** frequently to visualize your stack structure.

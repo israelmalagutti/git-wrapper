@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/israelmalagutti/git-wrapper/internal/config"
 	"github.com/israelmalagutti/git-wrapper/internal/git"
 	"github.com/spf13/cobra"
@@ -55,7 +57,13 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		prompt := &survey.Input{
 			Message: "Branch name:",
 		}
-		if err := survey.AskOne(prompt, &branchName, survey.WithValidator(survey.Required)); err != nil {
+		err = survey.AskOne(prompt, &branchName, survey.WithValidator(survey.Required))
+		if err != nil {
+			// Handle ESC/Ctrl+C gracefully
+			if errors.Is(err, terminal.InterruptErr) {
+				fmt.Println("Cancelled.")
+				return nil
+			}
 			return fmt.Errorf("failed to get branch name: %w", err)
 		}
 	}
@@ -110,7 +118,13 @@ func runCreate(cmd *cobra.Command, args []string) error {
 			Message: "You have staged changes. Commit them now?",
 			Default: true,
 		}
-		if err := survey.AskOne(prompt, &commitNow); err != nil {
+		err = survey.AskOne(prompt, &commitNow)
+		if err != nil {
+			// Handle ESC/Ctrl+C gracefully
+			if errors.Is(err, terminal.InterruptErr) {
+				fmt.Println("Cancelled.")
+				return nil
+			}
 			return fmt.Errorf("failed to get commit confirmation: %w", err)
 		}
 
@@ -120,7 +134,13 @@ func runCreate(cmd *cobra.Command, args []string) error {
 			msgPrompt := &survey.Input{
 				Message: "Commit message:",
 			}
-			if err := survey.AskOne(msgPrompt, &commitMsg, survey.WithValidator(survey.Required)); err != nil {
+			err = survey.AskOne(msgPrompt, &commitMsg, survey.WithValidator(survey.Required))
+			if err != nil {
+				// Handle ESC/Ctrl+C gracefully
+				if errors.Is(err, terminal.InterruptErr) {
+					fmt.Println("Cancelled.")
+					return nil
+				}
 				return fmt.Errorf("failed to get commit message: %w", err)
 			}
 

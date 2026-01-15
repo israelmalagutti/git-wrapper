@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/israelmalagutti/git-wrapper/internal/config"
 	"github.com/israelmalagutti/git-wrapper/internal/git"
 	"github.com/spf13/cobra"
@@ -71,7 +73,13 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 	prompt.Default = defaultIndex
 
-	if err := survey.AskOne(prompt, &trunk, survey.WithValidator(survey.Required)); err != nil {
+	err = survey.AskOne(prompt, &trunk, survey.WithValidator(survey.Required))
+	if err != nil {
+		// Handle ESC/Ctrl+C gracefully
+		if errors.Is(err, terminal.InterruptErr) {
+			fmt.Println("Cancelled.")
+			return nil
+		}
 		return fmt.Errorf("failed to get trunk selection: %w", err)
 	}
 
