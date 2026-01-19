@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/israelmalagutti/git-wrapper/internal/config"
 	"github.com/israelmalagutti/git-wrapper/internal/git"
 	"github.com/israelmalagutti/git-wrapper/internal/stack"
@@ -95,7 +97,10 @@ func runMove(cmd *cobra.Command, args []string) error {
 		for _, node := range s.Nodes {
 			if node.Name != currentBranch {
 				// Get context for display
-				parent := metadata.Branches[node.Name].Parent
+				parent, ok := metadata.GetParent(node.Name)
+				if !ok {
+					continue
+				}
 				context := fmt.Sprintf("%s (parent: %s)", node.Name, parent)
 				options = append(options, context)
 				optionsMap[context] = node.Name
@@ -113,6 +118,10 @@ func runMove(cmd *cobra.Command, args []string) error {
 
 		var selected string
 		if err := survey.AskOne(prompt, &selected); err != nil {
+			if errors.Is(err, terminal.InterruptErr) {
+				fmt.Println("Cancelled.")
+				return nil
+			}
 			return fmt.Errorf("selection cancelled: %w", err)
 		}
 
