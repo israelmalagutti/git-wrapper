@@ -13,27 +13,34 @@ import (
 )
 
 var (
-	moveOnto string
+	moveOnto   string
+	moveSource string
 )
 
 var moveCmd = &cobra.Command{
 	Use:   "move [target]",
-	Short: "Rebase current branch onto a different parent",
-	Long: `Move the current branch to a different parent by rebasing it onto the target branch.
+	Short: "Rebase a branch onto a different parent",
+	Long: `Move a branch to a different parent by rebasing it onto the target branch.
 Automatically restacks all descendants.
 
 If no target is specified, opens an interactive selector to choose the new parent.
+If no source is specified, moves the current branch.
 
 Example:
-  gw move feat-base        # Move current branch onto feat-base
-  gw move                  # Interactive selection
-  gw move -o feat-base     # Using --onto flag`,
+  gw move feat-base                    # Move current branch onto feat-base
+  gw move                              # Interactive selection
+  gw move -o feat-base                 # Using --onto flag
+  gw move -t feat-base                 # Using --target flag (alias for --onto)
+  gw move -s feat-2 -o main            # Move feat-2 onto main
+  gw mv --source feat-3 feat-1         # Move feat-3 onto feat-1`,
 	Aliases: []string{"mv"},
 	RunE:    runMove,
 }
 
 func init() {
 	moveCmd.Flags().StringVarP(&moveOnto, "onto", "o", "", "Branch to move onto")
+	moveCmd.Flags().StringVarP(&moveOnto, "target", "t", "", "Branch to move onto (alias for --onto)")
+	moveCmd.Flags().StringVarP(&moveSource, "source", "s", "", "Branch to move (defaults to current branch)")
 	rootCmd.AddCommand(moveCmd)
 }
 
@@ -62,13 +69,19 @@ func runMove(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get current branch: %w", err)
 	}
 
-	// Check if current branch is tracked
-	if !metadata.IsTracked(currentBranch) {
-		return fmt.Errorf("current branch '%s' is not tracked by gw", currentBranch)
+	// Determine source branch (branch to move)
+	sourceBranch := moveSource
+	if sourceBranch == "" {
+		sourceBranch = currentBranch
+	}
+
+	// Check if source branch is tracked
+	if !metadata.IsTracked(sourceBranch) {
+		return fmt.Errorf("branch '%s' is not tracked by gw", sourceBranch)
 	}
 
 	// Don't move trunk
-	if currentBranch == cfg.Trunk {
+	if sourceBranch == cfg.Trunk {
 		return fmt.Errorf("cannot move trunk branch '%s'", cfg.Trunk)
 	}
 
@@ -85,7 +98,7 @@ func runMove(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to build stack: %w", err)
 		}
 
-		// Get all branches except current
+		// Get all branches except source
 		options := []string{}
 		optionsMap := make(map[string]string)
 
@@ -93,9 +106,9 @@ func runMove(cmd *cobra.Command, args []string) error {
 		options = append(options, cfg.Trunk)
 		optionsMap[cfg.Trunk] = cfg.Trunk
 
-		// Add all tracked branches except current
+		// Add all tracked branches except source
 		for _, node := range s.Nodes {
-			if node.Name != currentBranch {
+			if node.Name != sourceBranch {
 				// Get context for display
 				parent, ok := metadata.GetParent(node.Name)
 				if !ok {
@@ -134,7 +147,7 @@ func runMove(cmd *cobra.Command, args []string) error {
 	}
 
 	// Validate target branch
-	if targetBranch == currentBranch {
+	if targetBranch == sourceBranch {
 		return fmt.Errorf("cannot move branch onto itself")
 	}
 
@@ -142,28 +155,28 @@ func runMove(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("target branch '%s' does not exist", targetBranch)
 	}
 
-	// Check if target is a descendant of current branch
+	// Check if target is a descendant of source branch
 	s, err := stack.BuildStack(repo, cfg, metadata)
 	if err != nil {
 		return fmt.Errorf("failed to build stack: %w", err)
 	}
 
-	currentNode := s.GetNode(currentBranch)
-	if currentNode == nil {
-		return fmt.Errorf("current branch not found in stack")
+	sourceNode := s.GetNode(sourceBranch)
+	if sourceNode == nil {
+		return fmt.Errorf("branch '%s' not found in stack", sourceBranch)
 	}
 
-	if isDescendant(currentNode, targetBranch) {
+	if isDescendant(sourceNode, targetBranch) {
 		return fmt.Errorf("cannot move branch onto its descendant '%s'", targetBranch)
 	}
 
-	// Update parent in metadata
-	oldParent := metadata.Branches[currentBranch].Parent
+	// Get old parent
+	oldParent, _ := metadata.GetParent(sourceBranch)
 
-	fmt.Printf("Moving '%s' from '%s' to '%s'...\n", currentBranch, oldParent, targetBranch)
+	fmt.Printf("Moving '%s' from '%s' to '%s'...\n", sourceBranch, oldParent, targetBranch)
 
 	// Update metadata with new parent
-	if err := metadata.UpdateParent(currentBranch, targetBranch); err != nil {
+	if err := metadata.UpdateParent(sourceBranch, targetBranch); err != nil {
 		return fmt.Errorf("failed to update metadata: %w", err)
 	}
 
@@ -172,12 +185,29 @@ func runMove(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to save metadata: %w", err)
 	}
 
+	// If source is not current branch, checkout source first
+	needsCheckoutBack := false
+	if sourceBranch != currentBranch {
+		needsCheckoutBack = true
+		if err := repo.CheckoutBranch(sourceBranch); err != nil {
+			// Restore metadata
+			metadata.UpdateParent(sourceBranch, oldParent)
+			metadata.Save(repo.GetMetadataPath())
+			return fmt.Errorf("failed to checkout '%s': %w", sourceBranch, err)
+		}
+	}
+
 	// Rebase onto new parent
 	fmt.Printf("Rebasing onto '%s'...\n", targetBranch)
 	if _, err := repo.RunGitCommand("rebase", targetBranch); err != nil {
 		// Rebase failed, restore old parent
-		metadata.UpdateParent(currentBranch, oldParent)
+		metadata.UpdateParent(sourceBranch, oldParent)
 		metadata.Save(repo.GetMetadataPath())
+
+		// Try to go back to original branch
+		if needsCheckoutBack {
+			repo.CheckoutBranch(currentBranch)
+		}
 
 		return fmt.Errorf("rebase failed: %w\nMetadata restored to original state", err)
 	}
@@ -190,21 +220,28 @@ func runMove(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to rebuild stack: %w", err)
 	}
 
-	currentNode = s.GetNode(currentBranch)
-	if currentNode == nil {
-		return fmt.Errorf("current branch not found in stack")
+	sourceNode = s.GetNode(sourceBranch)
+	if sourceNode == nil {
+		return fmt.Errorf("branch '%s' not found in stack", sourceBranch)
 	}
 
 	// Restack children if any
-	if len(currentNode.Children) > 0 {
+	if len(sourceNode.Children) > 0 {
 		fmt.Println("\nRestacking children...")
-		if err := restackChildren(repo, s, currentNode); err != nil {
+		if err := restackChildren(repo, s, sourceNode); err != nil {
 			return fmt.Errorf("failed to restack children: %w", err)
 		}
 		fmt.Println("✓ Children restacked")
 	}
 
-	fmt.Printf("\n✓ Moved '%s' onto '%s'\n", currentBranch, targetBranch)
+	// Go back to original branch if needed
+	if needsCheckoutBack {
+		if err := repo.CheckoutBranch(currentBranch); err != nil {
+			fmt.Printf("Warning: could not return to '%s': %v\n", currentBranch, err)
+		}
+	}
+
+	fmt.Printf("\n✓ Moved '%s' onto '%s'\n", sourceBranch, targetBranch)
 
 	return nil
 }
