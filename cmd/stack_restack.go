@@ -71,11 +71,10 @@ func runStackRestack(cmd *cobra.Command, args []string) error {
 		}
 
 		if len(trunkNode.Children) == 0 {
-			fmt.Println("✓ No branches to restack from trunk")
+			fmt.Println("No branches to restack from trunk.")
 			return nil
 		}
 
-		fmt.Printf("Restacking all branches from trunk '%s'...\n", cfg.Trunk)
 		if err := restackChildren(repo, s, trunkNode); err != nil {
 			return err
 		}
@@ -85,7 +84,6 @@ func runStackRestack(cmd *cobra.Command, args []string) error {
 			fmt.Printf("Warning: could not return to trunk: %v\n", err)
 		}
 
-		fmt.Println("\n✓ Restack complete")
 		return nil
 	}
 
@@ -104,21 +102,18 @@ func runStackRestack(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("branch '%s' has no parent", currentBranch)
 	}
 
-	// Restack current branch and all children
-	fmt.Printf("Restacking '%s' onto '%s'...\n", currentBranch, node.Parent.Name)
+	// Restack current branch
 	if err := restackBranch(repo, currentBranch, node.Parent.Name); err != nil {
 		return err
 	}
 
 	// Recursively restack children
 	if len(node.Children) > 0 {
-		fmt.Println("\nRestacking children...")
 		if err := restackChildren(repo, s, node); err != nil {
 			return err
 		}
 	}
 
-	fmt.Println("\n✓ Restack complete")
 	return nil
 }
 
@@ -131,27 +126,24 @@ func restackBranch(repo *git.Repo, branch, parent string) error {
 	}
 
 	if !needsRebase {
-		fmt.Printf("  ✓ '%s' is up to date\n", branch)
+		fmt.Printf("%s does not need to be restacked on %s.\n", branch, parent)
 		return nil
 	}
 
 	// Perform rebase
-	fmt.Printf("  Rebasing '%s' onto '%s'...\n", branch, parent)
-	output, err := repo.RunGitCommand("rebase", parent, branch)
+	_, err = repo.RunGitCommand("rebase", parent, branch)
 	if err != nil {
-		// Check if it's a conflict
-		if isRebaseConflict(output) {
-			fmt.Println("\n⚠ Rebase conflict detected!")
-			fmt.Println("Resolve conflicts manually, then:")
-			fmt.Println("  git rebase --continue  # To continue")
-			fmt.Println("  git rebase --abort     # To abort")
-			fmt.Println("\nAfter resolving, run 'gw stack restack' again to continue restacking children.")
-			return fmt.Errorf("rebase conflict")
-		}
-		return fmt.Errorf("rebase failed: %w", err)
+		fmt.Printf("\nHit conflict restacking %s on %s.\n", branch, parent)
+		fmt.Println("\nTo fix and continue:")
+		fmt.Println("  (1) resolve the merge conflicts")
+		fmt.Println("  (2) stage changes with: git add .")
+		fmt.Println("  (3) continue rebase: git rebase --continue")
+		fmt.Println("  (4) restack remaining: gw stack restack")
+		fmt.Println("\nTo abort: git rebase --abort")
+		return fmt.Errorf("rebase conflict")
 	}
 
-	fmt.Printf("  ✓ Rebased '%s'\n", branch)
+	fmt.Printf("Restacked %s on %s.\n", branch, parent)
 	return nil
 }
 
@@ -195,10 +187,4 @@ func needsRebase(repo *git.Repo, branch, parent string) (bool, error) {
 
 	// If merge base != parent commit, branch needs rebasing
 	return mergeBase != parentCommit, nil
-}
-
-// isRebaseConflict checks if the output indicates a rebase conflict
-func isRebaseConflict(output string) bool {
-	// Git rebase conflict indicators
-	return false // For now, let git rebase handle conflicts naturally
 }
