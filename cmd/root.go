@@ -14,7 +14,9 @@ var rootCmd = &cobra.Command{
 
 It helps you work with stacked diffs (stacked PRs) efficiently,
 maintaining parent-child relationships between branches.`,
-	Version: "0.1.0",
+	Version:       "0.1.0",
+	SilenceUsage:  true,
+	SilenceErrors: true,
 }
 
 // Execute runs the root command
