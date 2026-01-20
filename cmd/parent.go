@@ -29,7 +29,7 @@ func runParent(cmd *cobra.Command, args []string) error {
 	}
 
 	// Load config
-	_, err = config.Load(repo.GetConfigPath())
+	cfg, err := config.Load(repo.GetConfigPath())
 	if err != nil {
 		return err
 	}
@@ -50,6 +50,11 @@ func runParent(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to get current branch: %w", err)
 		}
 		branchName = currentBranch
+	}
+
+	// Trunk has no parent
+	if branchName == cfg.Trunk {
+		return fmt.Errorf("trunk branch has no parent")
 	}
 
 	// Check if branch is tracked

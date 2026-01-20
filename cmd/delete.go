@@ -117,7 +117,7 @@ func runDelete(cmd *cobra.Command, args []string) error {
 	}
 
 	if branchToDelete == cfg.Trunk {
-		return fmt.Errorf("cannot delete trunk branch '%s'", cfg.Trunk)
+		return fmt.Errorf("cannot delete trunk branch")
 	}
 
 	if !repo.BranchExists(branchToDelete) {

@@ -68,26 +68,24 @@ func runModify(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get current branch: %w", err)
 	}
 
-	// Check if current branch is tracked
-	if !metadata.IsTracked(currentBranch) {
-		return fmt.Errorf("current branch '%s' is not tracked by gw", currentBranch)
+	// Check if current branch is tracked (trunk is allowed)
+	isTrunk := currentBranch == cfg.Trunk
+	if !isTrunk && !metadata.IsTracked(currentBranch) {
+		return fmt.Errorf("branch '%s' is not tracked by gw", currentBranch)
 	}
 
-	// Don't modify trunk
-	if currentBranch == cfg.Trunk {
-		return fmt.Errorf("cannot modify trunk branch '%s'", cfg.Trunk)
-	}
+	// Check if branch has commits (skip for trunk)
+	if !isTrunk {
+		hasCommits, err := branchHasCommits(repo, currentBranch, cfg.Trunk)
+		if err != nil {
+			return fmt.Errorf("failed to check commits: %w", err)
+		}
 
-	// Check if branch has commits
-	hasCommits, err := branchHasCommits(repo, currentBranch, cfg.Trunk)
-	if err != nil {
-		return fmt.Errorf("failed to check commits: %w", err)
-	}
-
-	// If no commits, force new commit
-	if !hasCommits {
-		modifyCommit = true
-		fmt.Println("Branch has no commits, creating new commit...")
+		// If no commits, force new commit
+		if !hasCommits {
+			modifyCommit = true
+			fmt.Println("Branch has no commits, creating new commit...")
+		}
 	}
 
 	// Stage changes if requested
