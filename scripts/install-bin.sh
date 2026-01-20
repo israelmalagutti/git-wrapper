@@ -1,9 +1,7 @@
 #!/bin/bash
+# Quick local install script - builds and installs gw
+# For development use. For production, use: make install
+
 set -e
-
-# Build the binary and wait for completion
-make build
-
-# Copy to /usr/local/bin
-sudo cp bin/gw /usr/local/bin/gw
-echo "Installed Git-Wrapper (gw) CLI!"
+cd "$(dirname "$0")/.."
+make install

@@ -7,6 +7,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Version information - injected at build time via ldflags
+var (
+	Version   = "dev"
+	Commit    = "none"
+	BuildDate = "unknown"
+)
+
 var rootCmd = &cobra.Command{
 	Use:   "gw",
 	Short: "gw - blazing fast git stack management",
@@ -14,7 +21,7 @@ var rootCmd = &cobra.Command{
 
 It helps you work with stacked diffs (stacked PRs) efficiently,
 maintaining parent-child relationships between branches.`,
-	Version:       "0.1.0",
+	Version:       Version,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }
@@ -28,6 +35,12 @@ func Execute() {
 }
 
 func init() {
-	// Global flags can be added here
-	// rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug output")
+	// Override default version template to show more info
+	rootCmd.SetVersionTemplate(`gw version {{.Version}}
+`)
+}
+
+// GetVersionInfo returns detailed version information
+func GetVersionInfo() string {
+	return fmt.Sprintf("gw version %s\ncommit: %s\nbuilt: %s", Version, Commit, BuildDate)
 }
