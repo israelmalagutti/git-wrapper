@@ -57,21 +57,41 @@ func runStackRestack(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get current branch: %w", err)
 	}
 
-	// Check if current branch is tracked
-	if !metadata.IsTracked(currentBranch) {
-		return fmt.Errorf("current branch '%s' is not tracked by gw", currentBranch)
-	}
-
-	// Don't restack trunk
-	if currentBranch == cfg.Trunk {
-		fmt.Println("✓ Already at trunk - nothing to restack")
-		return nil
-	}
-
 	// Build stack
 	s, err := stack.BuildStack(repo, cfg, metadata)
 	if err != nil {
 		return fmt.Errorf("failed to build stack: %w", err)
+	}
+
+	// Handle trunk specially - restack all children of trunk
+	if currentBranch == cfg.Trunk {
+		trunkNode := s.GetNode(cfg.Trunk)
+		if trunkNode == nil {
+			return fmt.Errorf("trunk '%s' not found in stack", cfg.Trunk)
+		}
+
+		if len(trunkNode.Children) == 0 {
+			fmt.Println("✓ No branches to restack from trunk")
+			return nil
+		}
+
+		fmt.Printf("Restacking all branches from trunk '%s'...\n", cfg.Trunk)
+		if err := restackChildren(repo, s, trunkNode); err != nil {
+			return err
+		}
+
+		// Return to trunk
+		if err := repo.CheckoutBranch(cfg.Trunk); err != nil {
+			fmt.Printf("Warning: could not return to trunk: %v\n", err)
+		}
+
+		fmt.Println("\n✓ Restack complete")
+		return nil
+	}
+
+	// Check if current branch is tracked
+	if !metadata.IsTracked(currentBranch) {
+		return fmt.Errorf("current branch '%s' is not tracked by gw", currentBranch)
 	}
 
 	// Get current branch node
