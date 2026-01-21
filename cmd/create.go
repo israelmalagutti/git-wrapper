@@ -164,6 +164,20 @@ func runCreate(cmd *cobra.Command, args []string) error {
 				}
 				fmt.Println(colors.Success("✓") + " Committed all changes")
 			case "patch":
+				// Prompt for untracked files before patch mode
+				if err := promptTrackUntrackedFiles(repo); err != nil {
+					if errors.Is(err, terminal.InterruptErr) {
+						rollback()
+						fmt.Println(colors.Muted("Aborted."))
+						return nil
+					}
+					if errors.Is(err, errNoChangesToCommit) {
+						rollback()
+						printNoChangesInfo(repo)
+						return nil
+					}
+					return err
+				}
 				if err := commitChanges(repo, createMessage, true); err != nil {
 					rollback()
 					return fmt.Errorf("failed to commit: %w", err)
@@ -212,6 +226,19 @@ func runCreate(cmd *cobra.Command, args []string) error {
 				}
 				fmt.Println(colors.Success("✓") + " Committed all changes")
 			case "patch":
+				// Prompt for untracked files before patch mode
+				if err := promptTrackUntrackedFiles(repo); err != nil {
+					if errors.Is(err, terminal.InterruptErr) {
+						fmt.Println(colors.Muted("Cancelled."))
+						return nil
+					}
+					if errors.Is(err, errNoChangesToCommit) {
+						rollback()
+						printNoChangesInfo(repo)
+						return nil
+					}
+					return err
+				}
 				msg, err := promptCommitMessage()
 				if err != nil {
 					if errors.Is(err, terminal.InterruptErr) {
@@ -240,6 +267,10 @@ func runCreate(cmd *cobra.Command, args []string) error {
 				fmt.Println(colors.Success("✓") + " Committed staged changes")
 			case "no-commit":
 				fmt.Println(colors.Muted("Created branch with no commit."))
+			case "abort":
+				rollback()
+				fmt.Println(colors.Muted("Aborted."))
+				return nil
 			}
 		} else {
 			// No changes at all
@@ -295,12 +326,14 @@ func promptHasChanges(hasStaged bool) (string, error) {
 			"Commit all file changes (--all)",
 			"Select changes to commit (--patch)",
 			"Create a branch with no commit",
+			"Abort this operation",
 		}
 	} else {
 		options = []string{
 			"Commit all file changes (--all)",
 			"Select changes to commit (--patch)",
 			"Create a branch with no commit",
+			"Abort this operation",
 		}
 	}
 
@@ -322,8 +355,10 @@ func promptHasChanges(hasStaged bool) (string, error) {
 			return "all", nil
 		case options[2]:
 			return "patch", nil
-		default:
+		case options[3]:
 			return "no-commit", nil
+		default:
+			return "abort", nil
 		}
 	}
 
@@ -332,8 +367,10 @@ func promptHasChanges(hasStaged bool) (string, error) {
 		return "all", nil
 	case options[1]:
 		return "patch", nil
-	default:
+	case options[2]:
 		return "no-commit", nil
+	default:
+		return "abort", nil
 	}
 }
 
@@ -448,4 +485,128 @@ func commitChanges(repo *git.Repo, message string, patch bool) error {
 
 	_, err := repo.RunGitCommand(args...)
 	return err
+}
+
+// getUntrackedFiles returns a list of untracked files
+func getUntrackedFiles(repo *git.Repo) []string {
+	output, err := repo.RunGitCommand("ls-files", "--others", "--exclude-standard")
+	if err != nil || strings.TrimSpace(output) == "" {
+		return nil
+	}
+
+	files := strings.Split(strings.TrimSpace(output), "\n")
+	result := make([]string, 0, len(files))
+	for _, f := range files {
+		if f = strings.TrimSpace(f); f != "" {
+			result = append(result, f)
+		}
+	}
+	return result
+}
+
+// errNoChangesToCommit is returned when there are no changes available for patch mode
+var errNoChangesToCommit = fmt.Errorf("no changes to commit")
+
+// hasTrackedChanges checks if there are any staged or modified tracked files
+func hasTrackedChanges(repo *git.Repo) bool {
+	// Check for staged changes
+	if detectStagedChanges(repo) {
+		return true
+	}
+
+	// Check for modified tracked files (not untracked)
+	output, err := repo.RunGitCommand("diff", "--shortstat")
+	if err == nil && strings.TrimSpace(output) != "" {
+		return true
+	}
+
+	return false
+}
+
+// printNoChangesInfo prints detailed info when there are no changes to commit
+func printNoChangesInfo(repo *git.Repo) {
+	fmt.Println()
+	fmt.Println(colors.Warning("No changes."))
+
+	// Get HEAD info
+	headSHA, err := repo.RunGitCommand("rev-parse", "--short", "HEAD")
+	if err == nil {
+		headSHA = strings.TrimSpace(headSHA)
+		branchName, branchErr := repo.GetCurrentBranch()
+		if branchErr == nil && branchName != "" {
+			fmt.Printf("On branch %s (%s)\n", colors.BranchCurrent(branchName), colors.Muted(headSHA))
+		} else {
+			fmt.Printf("HEAD detached at %s\n", colors.Muted(headSHA))
+		}
+	}
+
+	// List untracked files
+	untrackedFiles := getUntrackedFiles(repo)
+	if len(untrackedFiles) > 0 {
+		fmt.Println()
+		fmt.Println(colors.Muted("Untracked files:"))
+		for _, file := range untrackedFiles {
+			fmt.Printf("  %s\n", colors.Muted(file))
+		}
+	}
+	fmt.Println()
+}
+
+// promptTrackUntrackedFiles asks if user wants to track untracked files before patch
+// Returns errNoChangesToCommit if user declines and there are no other tracked changes
+func promptTrackUntrackedFiles(repo *git.Repo) error {
+	untrackedFiles := getUntrackedFiles(repo)
+	if len(untrackedFiles) == 0 {
+		// No untracked files - check if there are tracked changes
+		if !hasTrackedChanges(repo) {
+			return errNoChangesToCommit
+		}
+		return nil
+	}
+
+	var trackThem bool
+	prompt := &survey.Confirm{
+		Message: "We detected untracked files in your working tree. Would you like to track any of them?",
+		Default: false,
+	}
+
+	if err := survey.AskOne(prompt, &trackThem); err != nil {
+		return err
+	}
+
+	if !trackThem {
+		// User declined - check if there are tracked changes to commit
+		if !hasTrackedChanges(repo) {
+			return errNoChangesToCommit
+		}
+		return nil
+	}
+
+	// Let user select which files to track
+	var selectedFiles []string
+	selectPrompt := &survey.MultiSelect{
+		Message: "Select files to track:",
+		Options: untrackedFiles,
+	}
+
+	if err := survey.AskOne(selectPrompt, &selectedFiles); err != nil {
+		return err
+	}
+
+	// User selected nothing - check if there are tracked changes
+	if len(selectedFiles) == 0 {
+		if !hasTrackedChanges(repo) {
+			return errNoChangesToCommit
+		}
+		return nil
+	}
+
+	// Add selected files
+	for _, file := range selectedFiles {
+		if _, err := repo.RunGitCommand("add", file); err != nil {
+			return fmt.Errorf("failed to add %s: %w", file, err)
+		}
+	}
+
+	return nil
 }
