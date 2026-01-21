@@ -7,6 +7,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/terminal"
+	"github.com/israelmalagutti/git-wrapper/internal/colors"
 	"github.com/israelmalagutti/git-wrapper/internal/config"
 	"github.com/israelmalagutti/git-wrapper/internal/git"
 	"github.com/israelmalagutti/git-wrapper/internal/stack"
@@ -213,7 +214,7 @@ func checkoutBranch(repo *git.Repo, s *stack.Stack, targetBranch string) error {
 	// Get current branch to show where we're switching from
 	currentBranch, err := repo.GetCurrentBranch()
 	if err == nil && currentBranch == targetBranch {
-		fmt.Printf("Already on branch '%s'\n", targetBranch)
+		fmt.Printf("Already on branch %s\n", colors.BranchCurrent(targetBranch))
 		return nil
 	}
 
@@ -222,27 +223,27 @@ func checkoutBranch(repo *git.Repo, s *stack.Stack, targetBranch string) error {
 		return err
 	}
 
-	fmt.Printf("Switched to branch '%s'\n", targetBranch)
+	colors.PrintCheckout(targetBranch)
 
 	// Show stack context if tracked
 	node := s.GetNode(targetBranch)
 	if node != nil {
 		if node.Parent != nil {
-			fmt.Printf("  Parent: %s\n", node.Parent.Name)
+			fmt.Printf("  Parent: %s\n", colors.BranchParent(node.Parent.Name))
 		}
 		children := s.GetChildren(targetBranch)
 		if len(children) > 0 {
 			fmt.Printf("  Children: ")
 			for i, child := range children {
 				if i > 0 {
-					fmt.Print(", ")
+					fmt.Print(colors.Muted(", "))
 				}
-				fmt.Print(child.Name)
+				fmt.Print(colors.BranchChild(child.Name))
 			}
 			fmt.Println()
 		}
 	} else {
-		fmt.Println("This branch is not tracked by Git-Wrapper")
+		fmt.Println(colors.Muted("This branch is not tracked by gw"))
 	}
 
 	return nil

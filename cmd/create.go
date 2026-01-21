@@ -6,6 +6,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/terminal"
+	"github.com/israelmalagutti/git-wrapper/internal/colors"
 	"github.com/israelmalagutti/git-wrapper/internal/config"
 	"github.com/israelmalagutti/git-wrapper/internal/git"
 	"github.com/spf13/cobra"
@@ -108,8 +109,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to save metadata: %w", err)
 	}
 
-	fmt.Printf("✓ Created branch '%s' stacked on '%s'\n", branchName, currentBranch)
-	fmt.Printf("✓ Switched to branch '%s'\n", branchName)
+	colors.PrintCreated(branchName, currentBranch)
 
 	// If there are staged changes, prompt to commit
 	if hasStagedChanges {
@@ -149,16 +149,17 @@ func runCreate(cmd *cobra.Command, args []string) error {
 				return fmt.Errorf("failed to commit changes: %w", err)
 			}
 
-			fmt.Printf("✓ Committed staged changes\n")
+			fmt.Println(colors.Success("✓") + " Committed staged changes")
 		}
 	}
 
 	// Show next steps
 	if !hasStagedChanges {
-		fmt.Println("\nNext steps:")
-		fmt.Println("  - Make your changes")
-		fmt.Println("  - Use 'gw modify' to amend or create commits")
-		fmt.Println("  - Use 'gw log' to see your stack")
+		fmt.Println()
+		fmt.Println(colors.Muted("Next steps:"))
+		fmt.Println(colors.Muted("  - Make your changes"))
+		fmt.Println(colors.Muted("  - Use 'gw modify' to amend or create commits"))
+		fmt.Println(colors.Muted("  - Use 'gw log' to see your stack"))
 	}
 
 	return nil

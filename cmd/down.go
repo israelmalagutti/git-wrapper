@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/israelmalagutti/git-wrapper/internal/colors"
 	"github.com/israelmalagutti/git-wrapper/internal/config"
 	"github.com/israelmalagutti/git-wrapper/internal/git"
 	"github.com/israelmalagutti/git-wrapper/internal/stack"
@@ -87,7 +88,7 @@ func runDown(cmd *cobra.Command, args []string) error {
 			if i == 0 {
 				return fmt.Errorf("already at trunk")
 			}
-			fmt.Printf("Reached trunk after %d step(s).\n", i)
+			fmt.Printf("%s Reached trunk after %d step(s)\n", colors.Info("→"), i)
 			break
 		}
 
@@ -103,6 +104,6 @@ func runDown(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to checkout '%s': %w", targetBranch, err)
 	}
 
-	fmt.Printf("Switched to %s\n", targetBranch)
+	colors.PrintNav("down", targetBranch)
 	return nil
 }

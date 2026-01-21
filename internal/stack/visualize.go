@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/israelmalagutti/git-wrapper/internal/colors"
 	"github.com/israelmalagutti/git-wrapper/internal/git"
 )
 
@@ -29,37 +30,48 @@ func (s *Stack) renderNode(result *strings.Builder, node *Node, prefix string, i
 		return
 	}
 
+	depth := s.GetStackDepth(node.Name)
+	chars := colors.DefaultTreeChars()
+
 	// Prepare the branch line
-	connector := "├──"
+	connector := chars.Tee + chars.Horizontal + chars.Horizontal
 	if isLast {
-		connector = "└──"
+		connector = chars.Corner + chars.Horizontal + chars.Horizontal
 	}
 
 	// Special handling for trunk (root)
 	if node.Parent == nil {
-		connector = "●"
+		connector = chars.Bullet
 		prefix = ""
 	}
 
-	// Branch indicator (appears right before branch name)
-	indicator := ""
+	// Color the connector based on depth
+	coloredConnector := colors.CycleText(connector, depth)
+
+	// Format branch name with appropriate color
+	var branchName string
 	if node.IsCurrent {
-		indicator = "*"
+		branchName = colors.BranchCurrent(node.Name)
+	} else if node.IsTrunk {
+		branchName = colors.BranchTrunk(node.Name)
+	} else {
+		branchName = colors.CycleText(node.Name, depth)
 	}
 
 	// Build the line
-	line := fmt.Sprintf("%s%s %s%s", prefix, connector, indicator, node.Name)
+	result.WriteString(prefix)
+	result.WriteString(coloredConnector)
+	result.WriteString(" ")
+	result.WriteString(branchName)
 
 	// Add trunk indicator
 	if node.IsTrunk {
-		line += " (trunk)"
+		result.WriteString(colors.Muted(" (trunk)"))
 	}
-
-	result.WriteString(line)
 
 	// Add commit SHA if requested
 	if opts.ShowCommitSHA && node.CommitSHA != "" {
-		result.WriteString(fmt.Sprintf(" [%s]", node.CommitSHA[:7]))
+		result.WriteString(colors.Muted(fmt.Sprintf(" [%s]", node.CommitSHA[:7])))
 	}
 
 	// Add commit message if requested and detailed
@@ -70,7 +82,7 @@ func (s *Stack) renderNode(result *strings.Builder, node *Node, prefix string, i
 			if len(msg) > 60 {
 				msg = msg[:57] + "..."
 			}
-			result.WriteString(fmt.Sprintf(" - %s", msg))
+			result.WriteString(colors.DimText(fmt.Sprintf(" - %s", msg)))
 		}
 	}
 
@@ -90,7 +102,7 @@ func (s *Stack) renderNode(result *strings.Builder, node *Node, prefix string, i
 			if isLast {
 				childPrefix = prefix + "    "
 			} else {
-				childPrefix = prefix + "│   "
+				childPrefix = colors.CycleText(chars.Vertical, depth) + "   "
 			}
 		}
 
@@ -113,20 +125,34 @@ func (s *Stack) renderShortNode(result *strings.Builder, node *Node, depth int) 
 		return
 	}
 
+	chars := colors.DefaultTreeChars()
 	indent := strings.Repeat("  ", depth)
 
 	// Use filled circle for current branch, hollow for others
-	indicator := "○"
+	indicator := chars.Circle
 	if node.IsCurrent {
-		indicator = "●"
+		indicator = chars.Bullet
+	}
+
+	// Color the indicator based on depth
+	coloredIndicator := colors.CycleText(indicator, depth)
+
+	// Format branch name with appropriate color
+	var branchName string
+	if node.IsCurrent {
+		branchName = colors.BranchCurrent(node.Name)
+	} else if node.IsTrunk {
+		branchName = colors.BranchTrunk(node.Name)
+	} else {
+		branchName = colors.CycleText(node.Name, depth)
 	}
 
 	suffix := ""
 	if node.IsTrunk {
-		suffix = " (trunk)"
+		suffix = colors.Muted(" (trunk)")
 	}
 
-	result.WriteString(fmt.Sprintf("%s%s %s%s\n", indent, indicator, node.Name, suffix))
+	result.WriteString(fmt.Sprintf("%s%s %s%s\n", indent, coloredIndicator, branchName, suffix))
 
 	// Render children
 	for _, child := range node.Children {
@@ -144,9 +170,19 @@ func (s *Stack) RenderPath(branch string) string {
 	var result strings.Builder
 	for i, node := range path {
 		if i > 0 {
-			result.WriteString(" → ")
+			result.WriteString(colors.Muted(" → "))
 		}
-		result.WriteString(node.Name)
+
+		// Color based on position
+		var name string
+		if node.IsCurrent {
+			name = colors.BranchCurrent(node.Name)
+		} else if node.IsTrunk {
+			name = colors.BranchTrunk(node.Name)
+		} else {
+			name = colors.CycleText(node.Name, i)
+		}
+		result.WriteString(name)
 	}
 
 	return result.String()

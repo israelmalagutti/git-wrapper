@@ -7,6 +7,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/terminal"
+	"github.com/israelmalagutti/git-wrapper/internal/colors"
 	"github.com/israelmalagutti/git-wrapper/internal/config"
 	"github.com/israelmalagutti/git-wrapper/internal/git"
 	"github.com/israelmalagutti/git-wrapper/internal/stack"
@@ -86,7 +87,7 @@ func runUp(cmd *cobra.Command, args []string) error {
 			if i == 0 {
 				return fmt.Errorf("already at top of stack")
 			}
-			fmt.Printf("Reached top after %d step(s).\n", i)
+			fmt.Printf("%s Reached top after %d step(s)\n", colors.Info("→"), i)
 			break
 		}
 
@@ -127,6 +128,6 @@ func runUp(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to checkout '%s': %w", targetBranch, err)
 	}
 
-	fmt.Printf("Switched to %s\n", targetBranch)
+	colors.PrintNav("up", targetBranch)
 	return nil
 }

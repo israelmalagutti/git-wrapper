@@ -6,6 +6,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/terminal"
+	"github.com/israelmalagutti/git-wrapper/internal/colors"
 	"github.com/israelmalagutti/git-wrapper/internal/config"
 	"github.com/israelmalagutti/git-wrapper/internal/git"
 	"github.com/spf13/cobra"
@@ -135,14 +136,14 @@ func runTrack(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to save metadata: %w", err)
 	}
 
-	fmt.Printf("✓ Now tracking '%s' with parent '%s'\n", branchToTrack, parent)
+	colors.PrintTracked(branchToTrack, parent)
 
 	// Show children if any
 	children := metadata.GetChildren(branchToTrack)
 	if len(children) > 0 {
-		fmt.Printf("\nNote: '%s' is the parent of:\n", branchToTrack)
+		fmt.Printf("\n%s %s is the parent of:\n", colors.Info("ℹ"), colors.BranchCurrent(branchToTrack))
 		for _, child := range children {
-			fmt.Printf("  - %s\n", child)
+			fmt.Printf("  - %s\n", colors.BranchChild(child))
 		}
 	}
 
