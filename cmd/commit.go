@@ -74,45 +74,14 @@ func runCommit(cmd *cobra.Command, args []string) error {
 			}
 			fmt.Printf("%s Committed changes\n", colors.Success("✓"))
 		} else if hasUnstaged {
-			// No staged changes, prompt for action
-			action, err := promptCommitAction()
-			if err != nil {
-				if errors.Is(err, terminal.InterruptErr) {
-					fmt.Println(colors.Muted("Cancelled."))
-					return nil
-				}
+			// No staged changes but have unstaged - auto-stage all (gt cli behavior)
+			if _, err := repo.RunGitCommand("add", "-A"); err != nil {
+				return fmt.Errorf("failed to stage changes: %w", err)
+			}
+			if err := doCommit(repo, commitMessage, commitPatch); err != nil {
 				return err
 			}
-
-			switch action {
-			case "all":
-				if _, err := repo.RunGitCommand("add", "-A"); err != nil {
-					return fmt.Errorf("failed to stage changes: %w", err)
-				}
-				if err := doCommit(repo, commitMessage, false); err != nil {
-					return err
-				}
-				fmt.Printf("%s Committed all changes\n", colors.Success("✓"))
-			case "patch":
-				if err := promptTrackUntrackedFiles(repo); err != nil {
-					if errors.Is(err, terminal.InterruptErr) {
-						fmt.Println(colors.Muted("Cancelled."))
-						return nil
-					}
-					if errors.Is(err, errNoChangesToCommit) {
-						printNoChangesInfo(repo)
-						return nil
-					}
-					return err
-				}
-				if err := doCommit(repo, commitMessage, true); err != nil {
-					return err
-				}
-				fmt.Printf("%s Committed selected changes\n", colors.Success("✓"))
-			case "abort":
-				fmt.Println(colors.Muted("Cancelled."))
-				return nil
-			}
+			fmt.Printf("%s Committed all changes\n", colors.Success("✓"))
 		} else {
 			printNoChangesInfo(repo)
 		}
@@ -211,34 +180,6 @@ func doCommit(repo *git.Repo, message string, patch bool) error {
 	}
 
 	return nil
-}
-
-// promptCommitAction prompts when message given but no staged changes
-func promptCommitAction() (string, error) {
-	options := []string{
-		"Stage all changes and commit (--all)",
-		"Select changes to commit (--patch)",
-		"Abort",
-	}
-
-	prompt := &survey.Select{
-		Message: "You have no staged changes. What would you like to do?",
-		Options: options,
-	}
-
-	var selected string
-	if err := survey.AskOne(prompt, &selected); err != nil {
-		return "", err
-	}
-
-	switch selected {
-	case options[0]:
-		return "all", nil
-	case options[1]:
-		return "patch", nil
-	default:
-		return "abort", nil
-	}
 }
 
 // promptCommitActionNoMessage prompts when no message and changes exist
