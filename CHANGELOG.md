@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `gw modify` command for amending commits
 - `gw stack restack` command for rebasing stacks
 - `gw sync` command with cycle detection
-- Graphite-style restack messaging
+- Informative restack messaging with progress indicators
 - Version injection from git tags
 - Cross-platform builds (Linux, macOS, Windows)
 - GitHub Actions CI/CD workflows

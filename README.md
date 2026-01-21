@@ -8,7 +8,7 @@ A fast, simple git stack management CLI tool for working with stacked diffs (sta
 - **Smart Navigation** - Move up/down the stack, jump to top/bottom
 - **Rebase Operations** - Automatic restacking when parent branches change
 - **Interactive UI** - Prompts for branch selection, conflict resolution guidance
-- **Graphite-compatible** - Similar workflow and commands to Graphite CLI
+- **Platform Agnostic** - Works with any git hosting (GitHub, GitLab, etc.)
 
 ## Installation
 
