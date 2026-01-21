@@ -123,35 +123,126 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	hasStaged := detectStagedChanges(repo)
 	hasUnstaged := detectUnstagedChanges(repo)
 
-	// Handle commit if we have a message
+	// Rollback helper
+	rollback := func() {
+		_ = repo.CheckoutBranch(currentBranch)
+		_ = repo.DeleteBranch(branchName, true)
+		metadata.UntrackBranch(branchName)
+		_ = metadata.Save(repo.GetMetadataPath())
+	}
+
+	// Handle commit logic based on changes and flags
 	if createMessage != "" {
-		if !hasStaged && !createAll {
-			// No staged changes and not using --all
-			if hasUnstaged {
-				fmt.Println(colors.Muted("tip: ") + "There are unstaged changes. Use " + colors.Info("-a") + " to stage all changes.")
-			}
-			fmt.Println(colors.Muted("No staged changes; created branch with no commit."))
-			return nil
-		}
-
-		// Commit the changes
-		if err := commitChanges(repo, createMessage, createPatch && !createAll); err != nil {
-			// Rollback: delete the branch on commit failure
-			_ = repo.CheckoutBranch(currentBranch)
-			_ = repo.DeleteBranch(branchName, true)
-			metadata.UntrackBranch(branchName)
-			_ = metadata.Save(repo.GetMetadataPath())
-			return fmt.Errorf("failed to commit: %w", err)
-		}
-
-		fmt.Println(colors.Success("✓") + " Committed changes")
-	} else {
-		// No message provided - just created the branch
+		// Message provided via flag
 		if hasStaged {
-			fmt.Println(colors.Muted("tip: ") + "You have staged changes. Use " + colors.Info("-m \"message\"") + " to commit them.")
+			// Staged changes exist - commit them
+			if err := commitChanges(repo, createMessage, createPatch); err != nil {
+				rollback()
+				return fmt.Errorf("failed to commit: %w", err)
+			}
+			fmt.Println(colors.Success("✓") + " Committed changes")
 		} else if hasUnstaged {
-			fmt.Println(colors.Muted("tip: ") + "You have unstaged changes. Use " + colors.Info("-am \"message\"") + " to stage and commit.")
+			// No staged but unstaged exist - prompt user
+			action, err := promptNoStagedChanges()
+			if err != nil {
+				if errors.Is(err, terminal.InterruptErr) {
+					rollback()
+					fmt.Println(colors.Muted("Aborted."))
+					return nil
+				}
+				return err
+			}
+
+			switch action {
+			case "all":
+				if _, err := repo.RunGitCommand("add", "-A"); err != nil {
+					return fmt.Errorf("failed to stage changes: %w", err)
+				}
+				if err := commitChanges(repo, createMessage, false); err != nil {
+					rollback()
+					return fmt.Errorf("failed to commit: %w", err)
+				}
+				fmt.Println(colors.Success("✓") + " Committed all changes")
+			case "patch":
+				if err := commitChanges(repo, createMessage, true); err != nil {
+					rollback()
+					return fmt.Errorf("failed to commit: %w", err)
+				}
+				fmt.Println(colors.Success("✓") + " Committed selected changes")
+			case "no-commit":
+				fmt.Println(colors.Muted("Created branch with no commit."))
+			case "abort":
+				rollback()
+				fmt.Println(colors.Muted("Aborted."))
+				return nil
+			}
 		} else {
+			// No changes at all
+			fmt.Println(colors.Muted("No changes to commit; created branch with no commit."))
+		}
+	} else {
+		// No message provided
+		if hasStaged || hasUnstaged {
+			// Changes exist - prompt for what to do
+			action, err := promptHasChanges(hasStaged)
+			if err != nil {
+				if errors.Is(err, terminal.InterruptErr) {
+					fmt.Println(colors.Muted("Cancelled."))
+					return nil
+				}
+				return err
+			}
+
+			switch action {
+			case "all":
+				// Stage all and prompt for message
+				if _, err := repo.RunGitCommand("add", "-A"); err != nil {
+					return fmt.Errorf("failed to stage changes: %w", err)
+				}
+				msg, err := promptCommitMessage()
+				if err != nil {
+					if errors.Is(err, terminal.InterruptErr) {
+						fmt.Println(colors.Muted("Cancelled."))
+						return nil
+					}
+					return err
+				}
+				if err := commitChanges(repo, msg, false); err != nil {
+					return fmt.Errorf("failed to commit: %w", err)
+				}
+				fmt.Println(colors.Success("✓") + " Committed all changes")
+			case "patch":
+				msg, err := promptCommitMessage()
+				if err != nil {
+					if errors.Is(err, terminal.InterruptErr) {
+						fmt.Println(colors.Muted("Cancelled."))
+						return nil
+					}
+					return err
+				}
+				if err := commitChanges(repo, msg, true); err != nil {
+					return fmt.Errorf("failed to commit: %w", err)
+				}
+				fmt.Println(colors.Success("✓") + " Committed selected changes")
+			case "staged":
+				// Commit only staged changes
+				msg, err := promptCommitMessage()
+				if err != nil {
+					if errors.Is(err, terminal.InterruptErr) {
+						fmt.Println(colors.Muted("Cancelled."))
+						return nil
+					}
+					return err
+				}
+				if err := commitChanges(repo, msg, false); err != nil {
+					return fmt.Errorf("failed to commit: %w", err)
+				}
+				fmt.Println(colors.Success("✓") + " Committed staged changes")
+			case "no-commit":
+				fmt.Println(colors.Muted("Created branch with no commit."))
+			}
+		} else {
+			// No changes at all
 			fmt.Println()
 			fmt.Println(colors.Muted("Next steps:"))
 			fmt.Println(colors.Muted("  Make your changes, then:"))
@@ -161,6 +252,101 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// promptNoStagedChanges prompts when message given but no staged changes
+func promptNoStagedChanges() (string, error) {
+	options := []string{
+		"Commit all file changes (--all)",
+		"Select changes to commit (--patch)",
+		"Create a branch with no commit",
+		"Abort this operation",
+	}
+
+	prompt := &survey.Select{
+		Message: "You have no staged changes. What would you like to do?",
+		Options: options,
+	}
+
+	var selected string
+	if err := survey.AskOne(prompt, &selected); err != nil {
+		return "", err
+	}
+
+	switch selected {
+	case options[0]:
+		return "all", nil
+	case options[1]:
+		return "patch", nil
+	case options[2]:
+		return "no-commit", nil
+	default:
+		return "abort", nil
+	}
+}
+
+// promptHasChanges prompts when no message but changes exist
+func promptHasChanges(hasStaged bool) (string, error) {
+	var options []string
+
+	if hasStaged {
+		options = []string{
+			"Commit staged changes",
+			"Commit all file changes (--all)",
+			"Select changes to commit (--patch)",
+			"Create a branch with no commit",
+		}
+	} else {
+		options = []string{
+			"Commit all file changes (--all)",
+			"Select changes to commit (--patch)",
+			"Create a branch with no commit",
+		}
+	}
+
+	prompt := &survey.Select{
+		Message: "You have uncommitted changes. What would you like to do?",
+		Options: options,
+	}
+
+	var selected string
+	if err := survey.AskOne(prompt, &selected); err != nil {
+		return "", err
+	}
+
+	if hasStaged {
+		switch selected {
+		case options[0]:
+			return "staged", nil
+		case options[1]:
+			return "all", nil
+		case options[2]:
+			return "patch", nil
+		default:
+			return "no-commit", nil
+		}
+	}
+
+	switch selected {
+	case options[0]:
+		return "all", nil
+	case options[1]:
+		return "patch", nil
+	default:
+		return "no-commit", nil
+	}
+}
+
+// promptCommitMessage prompts for a commit message
+func promptCommitMessage() (string, error) {
+	var msg string
+	prompt := &survey.Input{
+		Message: "Commit message:",
+	}
+	if err := survey.AskOne(prompt, &msg, survey.WithValidator(survey.Required)); err != nil {
+		return "", err
+	}
+	return msg, nil
 }
 
 // resolveBranchName determines the branch name from args or message
