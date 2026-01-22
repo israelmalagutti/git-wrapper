@@ -153,7 +153,7 @@ func (s *Stack) renderBranchWithCommits(result *strings.Builder, node *Node, rep
 		// White vertical line for commits
 		verticalLine := colors.Muted(chars.Vertical)
 
-		for _, commit := range commits {
+		for i, commit := range commits {
 			result.WriteString(verticalLine)
 			result.WriteString(" ")
 
@@ -162,8 +162,14 @@ func (s *Stack) renderBranchWithCommits(result *strings.Builder, node *Node, rep
 			if len(sha) > 7 {
 				sha = sha[:7]
 			}
-			result.WriteString(colors.CommitSHA(sha))
-			result.WriteString(" ")
+
+			// Only color the first (latest) commit SHA
+			if i == 0 {
+				result.WriteString(colors.CommitSHA(sha))
+			} else {
+				result.WriteString(colors.Muted(sha))
+			}
+			result.WriteString(colors.Muted(" - "))
 
 			// Commit message (truncated)
 			msg := commit.Message
