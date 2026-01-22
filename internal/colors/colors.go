@@ -218,14 +218,16 @@ func Sprintf(format string, a ...interface{}) string {
 
 // TreeChars provides characters for tree visualization
 type TreeChars struct {
-	Vertical     string // │
-	Horizontal   string // ─
-	Corner       string // └
-	Tee          string // ├
-	Arrow        string // ▸ or >
-	Bullet       string // ●
-	Circle       string // ○
-	FilledCircle string // ◉
+	Vertical      string // │
+	Horizontal    string // ─
+	Corner        string // └
+	TopCorner     string // ┌
+	BottomRight   string // ┘
+	Tee           string // ├
+	Arrow         string // ▸ or >
+	Bullet        string // ●
+	Circle        string // ○
+	FilledCircle  string // ◉
 }
 
 // DefaultTreeChars returns the default tree drawing characters
@@ -234,6 +236,8 @@ func DefaultTreeChars() TreeChars {
 		Vertical:     "│",
 		Horizontal:   "─",
 		Corner:       "└",
+		TopCorner:    "┌",
+		BottomRight:  "┘",
 		Tee:          "├",
 		Arrow:        "▸",
 		Bullet:       "●",
@@ -248,6 +252,8 @@ func ASCIITreeChars() TreeChars {
 		Vertical:     "|",
 		Horizontal:   "-",
 		Corner:       "`",
+		TopCorner:    ",",
+		BottomRight:  "'",
 		Tee:          "|",
 		Arrow:        ">",
 		Bullet:       "*",
