@@ -77,6 +77,8 @@ func runCreate(cmd *cobra.Command, args []string) error {
 			}
 			return fmt.Errorf("failed to get branch name: %w", err)
 		}
+		// Sanitize user input (replace spaces with dashes, etc.)
+		branchName = sanitizeBranchName(branchName)
 	}
 
 	// Validate branch name
