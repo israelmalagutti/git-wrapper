@@ -129,19 +129,9 @@ func (s *Stack) renderBranchWithCommits(result *strings.Builder, node *Node, rep
 		result.WriteString(colors.Muted(" (current)"))
 	}
 
-	// Add time since last commit
+	// Get commits for this branch
+	var commits []Commit
 	if repo != nil {
-		timeAgo := getTimeSinceLastCommit(repo, node.Name)
-		if timeAgo != "" {
-			result.WriteString(colors.Muted(" · " + timeAgo))
-		}
-	}
-
-	result.WriteString("\n")
-
-	// Get and render commits for this branch
-	if repo != nil {
-		var commits []Commit
 		if node.IsTrunk {
 			// For trunk, show recent commits (last 3)
 			commits = getTrunkCommits(repo, node.Name, 3)
@@ -149,6 +139,20 @@ func (s *Stack) renderBranchWithCommits(result *strings.Builder, node *Node, rep
 			// For other branches, show commits unique to this branch
 			commits = s.getBranchCommits(repo, node)
 		}
+
+		// Add time since last commit (only if there are commits)
+		if len(commits) > 0 {
+			timeAgo := getTimeSinceLastCommit(repo, node.Name)
+			if timeAgo != "" {
+				result.WriteString(colors.Muted(" · " + timeAgo))
+			}
+		}
+	}
+
+	result.WriteString("\n")
+
+	// Render commits
+	if repo != nil {
 
 		// White vertical line for commits
 		verticalLine := colors.Muted(chars.Vertical)
