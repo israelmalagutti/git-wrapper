@@ -77,7 +77,7 @@ func (s *Stack) renderSiblingsWithCommits(result *strings.Builder, siblings []*N
 		// Build prefix for this node's branch line
 		var branchPrefix string
 		if isFirst && outerRail == "" && !hasChildren {
-			// Very first branch at root with no children - no prefix
+			// First sibling at root level that's a leaf - no prefix
 			branchPrefix = ""
 		} else if hasChildren {
 			// Node with children uses the indented rail
@@ -395,6 +395,7 @@ func (s *Stack) renderSiblingsShort(result *strings.Builder, siblings []*Node, o
 		// Build prefix for branch line
 		var branchPrefix string
 		if isFirst && outerRail == "" && !hasChildren {
+			// First sibling at root level that's a leaf - no prefix
 			branchPrefix = ""
 		} else if hasChildren {
 			branchPrefix = nodeRail
