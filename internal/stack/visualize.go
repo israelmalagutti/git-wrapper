@@ -2,6 +2,7 @@ package stack
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/israelmalagutti/git-wrapper/internal/colors"
@@ -15,40 +16,100 @@ type TreeOptions struct {
 	Detailed      bool
 }
 
-// RenderTree renders the stack as an ASCII tree
+// Commit represents a single commit in a branch
+type Commit struct {
+	SHA     string
+	Message string
+}
+
+// RenderTree renders the stack as a top-down tree with commits
+// Output flows from leaves (top) down to trunk (bottom)
 func (s *Stack) RenderTree(repo *git.Repo, opts TreeOptions) string {
 	var result strings.Builder
 
-	// Render from trunk down
-	s.renderNode(&result, s.Trunk, "", true, repo, opts)
+	// Get ordered branches from leaves to trunk
+	orderedBranches := s.getTopDownOrder()
+
+	for i, node := range orderedBranches {
+		isLast := i == len(orderedBranches)-1
+		s.renderBranchWithCommits(&result, node, repo, opts, isLast)
+	}
 
 	return result.String()
 }
 
-func (s *Stack) renderNode(result *strings.Builder, node *Node, prefix string, isLast bool, repo *git.Repo, opts TreeOptions) {
-	if node == nil {
-		return
+// getTopDownOrder returns branches ordered from leaves to trunk
+// Handles multiple stacks by rendering them in sequence
+func (s *Stack) getTopDownOrder() []*Node {
+	// Find all leaves (branches with no children)
+	var leaves []*Node
+	for _, node := range s.Nodes {
+		if len(node.Children) == 0 && !node.IsTrunk {
+			leaves = append(leaves, node)
+		}
 	}
 
-	depth := s.GetStackDepth(node.Name)
+	// Sort leaves alphabetically for consistent ordering
+	sort.Slice(leaves, func(i, j int) bool {
+		return leaves[i].Name < leaves[j].Name
+	})
+
+	// If no leaves, trunk is the only branch
+	if len(leaves) == 0 {
+		return []*Node{s.Trunk}
+	}
+
+	// Build ordered list by traversing from each leaf to trunk
+	// But DON'T add trunk yet - we'll add it at the very end
+	var ordered []*Node
+	seen := make(map[string]bool)
+	seen[s.Trunk.Name] = true // Mark trunk as seen so we skip it during traversal
+
+	for _, leaf := range leaves {
+		// Get path from leaf to trunk
+		path := s.getPathToTrunk(leaf)
+
+		// Add branches we haven't seen yet (except trunk)
+		for _, node := range path {
+			if !seen[node.Name] {
+				seen[node.Name] = true
+				ordered = append(ordered, node)
+			}
+		}
+	}
+
+	// Add trunk at the very end
+	ordered = append(ordered, s.Trunk)
+
+	return ordered
+}
+
+// getPathToTrunk returns path from a node to trunk (leaf first, trunk last)
+func (s *Stack) getPathToTrunk(node *Node) []*Node {
+	var path []*Node
+	current := node
+	for current != nil {
+		path = append(path, current)
+		current = current.Parent
+	}
+	return path
+}
+
+// renderBranchWithCommits renders a branch and its commits
+func (s *Stack) renderBranchWithCommits(result *strings.Builder, node *Node, repo *git.Repo, opts TreeOptions, isLast bool) {
 	chars := colors.DefaultTreeChars()
+	depth := s.GetStackDepth(node.Name)
 
-	// Prepare the branch line
-	connector := chars.Tee + chars.Horizontal + chars.Horizontal
-	if isLast {
-		connector = chars.Corner + chars.Horizontal + chars.Horizontal
+	// Use filled circle for current branch, hollow for others
+	indicator := chars.Circle // ○
+	if node.IsCurrent {
+		indicator = chars.FilledCircle // ◉
 	}
 
-	// Special handling for trunk (root)
-	if node.Parent == nil {
-		connector = chars.Bullet
-		prefix = ""
-	}
+	// Color the indicator
+	coloredIndicator := colors.CycleText(indicator, depth)
 
-	// Color the connector based on depth
-	coloredConnector := colors.CycleText(connector, depth)
-
-	// Format branch name with appropriate color
+	// Format branch name
 	var branchName string
 	if node.IsCurrent {
 		branchName = colors.BranchCurrent(node.Name)
@@ -58,9 +119,8 @@ func (s *Stack) renderNode(result *strings.Builder, node *Node, prefix string, i
 		branchName = colors.CycleText(node.Name, depth)
 	}
 
-	// Build the line
-	result.WriteString(prefix)
-	result.WriteString(coloredConnector)
+	// Build the branch line
+	result.WriteString(coloredIndicator)
 	result.WriteString(" ")
 	result.WriteString(branchName)
 
@@ -69,75 +129,108 @@ func (s *Stack) renderNode(result *strings.Builder, node *Node, prefix string, i
 		result.WriteString(colors.Muted(" (trunk)"))
 	}
 
-	// Add commit SHA if requested
-	if opts.ShowCommitSHA && node.CommitSHA != "" {
-		result.WriteString(colors.Muted(fmt.Sprintf(" [%s]", node.CommitSHA[:7])))
-	}
-
-	// Add commit message if requested and detailed
-	if opts.ShowCommitMsg && repo != nil {
-		msg, err := repo.RunGitCommand("log", "-1", "--format=%s", node.Name)
-		if err == nil && msg != "" {
-			// Truncate long messages
-			if len(msg) > 60 {
-				msg = msg[:57] + "..."
-			}
-			result.WriteString(colors.DimText(fmt.Sprintf(" - %s", msg)))
-		}
-	}
-
 	result.WriteString("\n")
 
-	// Render children
-	childCount := len(node.Children)
-	for i, child := range node.Children {
-		isLastChild := i == childCount-1
+	// Get and render commits for this branch (skip trunk)
+	if !node.IsTrunk && repo != nil {
+		commits := s.getBranchCommits(repo, node)
+		for _, commit := range commits {
+			// Render commit line with vertical connector
+			verticalLine := colors.CycleText(chars.Vertical, depth)
+			result.WriteString(verticalLine)
+			result.WriteString(" ")
 
-		// Prepare prefix for children
-		var childPrefix string
-		if node.Parent == nil {
-			// Trunk level
-			childPrefix = ""
-		} else {
-			if isLast {
-				childPrefix = prefix + "    "
-			} else {
-				childPrefix = colors.CycleText(chars.Vertical, depth) + "   "
+			// Commit SHA (shortened)
+			sha := commit.SHA
+			if len(sha) > 7 {
+				sha = sha[:7]
 			}
-		}
+			result.WriteString(colors.CommitSHA(sha))
+			result.WriteString(" ")
 
-		s.renderNode(result, child, childPrefix, isLastChild, repo, opts)
+			// Commit message (truncated)
+			msg := commit.Message
+			if len(msg) > 50 {
+				msg = msg[:47] + "..."
+			}
+			result.WriteString(colors.Muted(msg))
+			result.WriteString("\n")
+		}
+	}
+
+	// Add vertical connector to next branch (unless this is trunk)
+	if !node.IsTrunk {
+		verticalLine := colors.CycleText(chars.Vertical, depth)
+		result.WriteString(verticalLine)
+		result.WriteString("\n")
 	}
 }
 
-// RenderShort renders a compact view of the stack
+// getBranchCommits returns the commits unique to this branch (not in parent)
+func (s *Stack) getBranchCommits(repo *git.Repo, node *Node) []Commit {
+	if node.Parent == nil {
+		return nil
+	}
+
+	// Get commits in this branch that are not in parent
+	// git log parent..branch --oneline
+	output, err := repo.RunGitCommand("log", "--oneline", "--reverse",
+		fmt.Sprintf("%s..%s", node.Parent.Name, node.Name))
+	if err != nil || output == "" {
+		return nil
+	}
+
+	var commits []Commit
+	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
+		if line == "" {
+			continue
+		}
+		parts := strings.SplitN(line, " ", 2)
+		if len(parts) >= 2 {
+			commits = append(commits, Commit{
+				SHA:     parts[0],
+				Message: parts[1],
+			})
+		} else if len(parts) == 1 {
+			commits = append(commits, Commit{
+				SHA:     parts[0],
+				Message: "",
+			})
+		}
+	}
+
+	return commits
+}
+
+// RenderShort renders a compact view of the stack (top-down, no commits)
 func (s *Stack) RenderShort() string {
 	var result strings.Builder
 
-	// Simple list view
-	s.renderShortNode(&result, s.Trunk, 0)
+	// Get ordered branches from leaves to trunk
+	orderedBranches := s.getTopDownOrder()
+
+	for _, node := range orderedBranches {
+		s.renderShortBranch(&result, node)
+	}
 
 	return result.String()
 }
 
-func (s *Stack) renderShortNode(result *strings.Builder, node *Node, depth int) {
-	if node == nil {
-		return
-	}
-
+// renderShortBranch renders a single branch in short format
+func (s *Stack) renderShortBranch(result *strings.Builder, node *Node) {
 	chars := colors.DefaultTreeChars()
-	indent := strings.Repeat("  ", depth)
+	depth := s.GetStackDepth(node.Name)
 
 	// Use filled circle for current branch, hollow for others
 	indicator := chars.Circle
 	if node.IsCurrent {
-		indicator = chars.Bullet
+		indicator = chars.FilledCircle
 	}
 
-	// Color the indicator based on depth
+	// Color the indicator
 	coloredIndicator := colors.CycleText(indicator, depth)
 
-	// Format branch name with appropriate color
+	// Format branch name
 	var branchName string
 	if node.IsCurrent {
 		branchName = colors.BranchCurrent(node.Name)
@@ -152,11 +245,12 @@ func (s *Stack) renderShortNode(result *strings.Builder, node *Node, depth int) 
 		suffix = colors.Muted(" (trunk)")
 	}
 
-	result.WriteString(fmt.Sprintf("%s%s %s%s\n", indent, coloredIndicator, branchName, suffix))
+	result.WriteString(fmt.Sprintf("%s %s%s\n", coloredIndicator, branchName, suffix))
 
-	// Render children
-	for _, child := range node.Children {
-		s.renderShortNode(result, child, depth+1)
+	// Add vertical connector if not trunk
+	if !node.IsTrunk {
+		verticalLine := colors.CycleText(chars.Vertical, depth)
+		result.WriteString(verticalLine + "\n")
 	}
 }
 

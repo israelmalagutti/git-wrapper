@@ -213,37 +213,45 @@ func Sprintf(format string, a ...interface{}) string {
 
 // TreeChars provides characters for tree visualization
 type TreeChars struct {
-	Vertical   string // │
-	Horizontal string // ─
-	Corner     string // └
-	Tee        string // ├
-	Arrow      string // ▸ or >
-	Bullet     string // ●
-	Circle     string // ○
+	Vertical     string // │
+	Horizontal   string // ─
+	Corner       string // └
+	Tee          string // ├
+	Arrow        string // ▸ or >
+	Bullet       string // ●
+	Circle       string // ○
+	FilledCircle string // ◉
 }
 
 // DefaultTreeChars returns the default tree drawing characters
 func DefaultTreeChars() TreeChars {
 	return TreeChars{
-		Vertical:   "│",
-		Horizontal: "─",
-		Corner:     "└",
-		Tee:        "├",
-		Arrow:      "▸",
-		Bullet:     "●",
-		Circle:     "○",
+		Vertical:     "│",
+		Horizontal:   "─",
+		Corner:       "└",
+		Tee:          "├",
+		Arrow:        "▸",
+		Bullet:       "●",
+		Circle:       "○",
+		FilledCircle: "◉",
 	}
 }
 
 // ASCIITreeChars returns ASCII-only tree characters for limited terminals
 func ASCIITreeChars() TreeChars {
 	return TreeChars{
-		Vertical:   "|",
-		Horizontal: "-",
-		Corner:     "`",
-		Tee:        "|",
-		Arrow:      ">",
-		Bullet:     "*",
-		Circle:     "o",
+		Vertical:     "|",
+		Horizontal:   "-",
+		Corner:       "`",
+		Tee:          "|",
+		Arrow:        ">",
+		Bullet:       "*",
+		Circle:       "o",
+		FilledCircle: "@",
 	}
+}
+
+// CommitSHA formats a commit SHA (yellow/dim)
+func CommitSHA(text string) string {
+	return apply(Yellow, text)
 }
