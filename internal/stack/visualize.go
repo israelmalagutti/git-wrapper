@@ -106,17 +106,15 @@ func (s *Stack) renderBranchWithCommits(result *strings.Builder, node *Node, rep
 		indicator = chars.FilledCircle // ◉
 	}
 
-	// Color the indicator based on depth
-	coloredIndicator := colors.CycleText(indicator, depth)
-
-	// Format branch name
-	var branchName string
+	// Format indicator and branch name
+	// Current branch: colored, others: dimmed
+	var coloredIndicator, branchName string
 	if node.IsCurrent {
+		coloredIndicator = colors.CycleText(indicator, depth)
 		branchName = colors.BranchCurrent(node.Name)
-	} else if node.IsTrunk {
-		branchName = colors.BranchTrunk(node.Name)
 	} else {
-		branchName = colors.CycleText(node.Name, depth)
+		coloredIndicator = colors.DimText(indicator)
+		branchName = colors.DimText(node.Name)
 	}
 
 	// Build the branch line
@@ -296,17 +294,15 @@ func (s *Stack) renderShortBranch(result *strings.Builder, node *Node) {
 		indicator = chars.FilledCircle
 	}
 
-	// Color the indicator
-	coloredIndicator := colors.CycleText(indicator, depth)
-
-	// Format branch name
-	var branchName string
+	// Format indicator and branch name
+	// Current branch: colored, others: dimmed
+	var coloredIndicator, branchName string
 	if node.IsCurrent {
+		coloredIndicator = colors.CycleText(indicator, depth)
 		branchName = colors.BranchCurrent(node.Name)
-	} else if node.IsTrunk {
-		branchName = colors.BranchTrunk(node.Name)
 	} else {
-		branchName = colors.CycleText(node.Name, depth)
+		coloredIndicator = colors.DimText(indicator)
+		branchName = colors.DimText(node.Name)
 	}
 
 	// Build suffix with current indicator
