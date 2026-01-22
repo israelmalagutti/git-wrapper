@@ -175,6 +175,11 @@ func DimText(text string) string {
 	return apply(Dim, text)
 }
 
+// SubduedText applies dim + color for a desaturated but still colored look
+func SubduedText(text string, index int) string {
+	return applyMultiple(text, Dim, Cycle(index))
+}
+
 // ItalicText makes text italic (not supported in all terminals)
 func ItalicText(text string) string {
 	return apply(Italic, text)
