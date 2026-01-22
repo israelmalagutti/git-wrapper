@@ -106,7 +106,7 @@ func (s *Stack) renderBranchWithCommits(result *strings.Builder, node *Node, rep
 		indicator = chars.FilledCircle // ◉
 	}
 
-	// Color the indicator
+	// Color the indicator based on depth
 	coloredIndicator := colors.CycleText(indicator, depth)
 
 	// Format branch name
@@ -124,6 +124,14 @@ func (s *Stack) renderBranchWithCommits(result *strings.Builder, node *Node, rep
 	result.WriteString(" ")
 	result.WriteString(branchName)
 
+	// Add time since last commit
+	if repo != nil {
+		timeAgo := getTimeSinceLastCommit(repo, node.Name)
+		if timeAgo != "" {
+			result.WriteString(colors.Muted(" · " + timeAgo))
+		}
+	}
+
 	// Add trunk indicator
 	if node.IsTrunk {
 		result.WriteString(colors.Muted(" (trunk)"))
@@ -131,12 +139,21 @@ func (s *Stack) renderBranchWithCommits(result *strings.Builder, node *Node, rep
 
 	result.WriteString("\n")
 
-	// Get and render commits for this branch (skip trunk)
-	if !node.IsTrunk && repo != nil {
-		commits := s.getBranchCommits(repo, node)
+	// Get and render commits for this branch
+	if repo != nil {
+		var commits []Commit
+		if node.IsTrunk {
+			// For trunk, show recent commits (last 3)
+			commits = getTrunkCommits(repo, node.Name, 3)
+		} else {
+			// For other branches, show commits unique to this branch
+			commits = s.getBranchCommits(repo, node)
+		}
+
+		// White vertical line for commits
+		verticalLine := colors.Muted(chars.Vertical)
+
 		for _, commit := range commits {
-			// Render commit line with vertical connector
-			verticalLine := colors.CycleText(chars.Vertical, depth)
 			result.WriteString(verticalLine)
 			result.WriteString(" ")
 
@@ -156,14 +173,56 @@ func (s *Stack) renderBranchWithCommits(result *strings.Builder, node *Node, rep
 			result.WriteString(colors.Muted(msg))
 			result.WriteString("\n")
 		}
-	}
 
-	// Add vertical connector to next branch (unless this is trunk)
-	if !node.IsTrunk {
-		verticalLine := colors.CycleText(chars.Vertical, depth)
+		// Add trailing vertical line (white) if there are commits or if not trunk
+		if len(commits) > 0 || !node.IsTrunk {
+			result.WriteString(verticalLine)
+			result.WriteString("\n")
+		}
+	} else if !node.IsTrunk {
+		// No repo but not trunk - still show connector
+		verticalLine := colors.Muted(chars.Vertical)
 		result.WriteString(verticalLine)
 		result.WriteString("\n")
 	}
+}
+
+// getTimeSinceLastCommit returns relative time since the last commit on a branch
+func getTimeSinceLastCommit(repo *git.Repo, branch string) string {
+	output, err := repo.RunGitCommand("log", "-1", "--format=%cr", branch)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(output)
+}
+
+// getTrunkCommits returns the last n commits on trunk
+func getTrunkCommits(repo *git.Repo, branch string, n int) []Commit {
+	output, err := repo.RunGitCommand("log", "--oneline", fmt.Sprintf("-%d", n), branch)
+	if err != nil || output == "" {
+		return nil
+	}
+
+	var commits []Commit
+	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
+		if line == "" {
+			continue
+		}
+		parts := strings.SplitN(line, " ", 2)
+		if len(parts) >= 2 {
+			commits = append(commits, Commit{
+				SHA:     parts[0],
+				Message: parts[1],
+			})
+		} else if len(parts) == 1 {
+			commits = append(commits, Commit{
+				SHA:     parts[0],
+				Message: "",
+			})
+		}
+	}
+
+	return commits
 }
 
 // getBranchCommits returns the commits unique to this branch (not in parent)
@@ -247,9 +306,9 @@ func (s *Stack) renderShortBranch(result *strings.Builder, node *Node) {
 
 	result.WriteString(fmt.Sprintf("%s %s%s\n", coloredIndicator, branchName, suffix))
 
-	// Add vertical connector if not trunk
+	// Add white vertical connector if not trunk
 	if !node.IsTrunk {
-		verticalLine := colors.CycleText(chars.Vertical, depth)
+		verticalLine := colors.Muted(chars.Vertical)
 		result.WriteString(verticalLine + "\n")
 	}
 }
