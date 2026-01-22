@@ -124,6 +124,11 @@ func (s *Stack) renderBranchWithCommits(result *strings.Builder, node *Node, rep
 	result.WriteString(" ")
 	result.WriteString(branchName)
 
+	// Add current indicator
+	if node.IsCurrent {
+		result.WriteString(colors.Muted(" (current)"))
+	}
+
 	// Add time since last commit
 	if repo != nil {
 		timeAgo := getTimeSinceLastCommit(repo, node.Name)
@@ -305,9 +310,13 @@ func (s *Stack) renderShortBranch(result *strings.Builder, node *Node) {
 		branchName = colors.CycleText(node.Name, depth)
 	}
 
+	// Build suffix with current and trunk indicators
 	suffix := ""
+	if node.IsCurrent {
+		suffix += colors.Muted(" (current)")
+	}
 	if node.IsTrunk {
-		suffix = colors.Muted(" (trunk)")
+		suffix += colors.Muted(" (trunk)")
 	}
 
 	result.WriteString(fmt.Sprintf("%s %s%s\n", coloredIndicator, branchName, suffix))
