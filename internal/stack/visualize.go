@@ -107,14 +107,14 @@ func (s *Stack) renderBranchWithCommits(result *strings.Builder, node *Node, rep
 	}
 
 	// Format indicator and branch name
-	// Current branch: bright/saturated, others: subdued/desaturated
+	// Current branch: bright/saturated, others: muted gray
 	var coloredIndicator, branchName string
 	if node.IsCurrent {
 		coloredIndicator = colors.CycleText(indicator, depth)
 		branchName = colors.BranchCurrent(node.Name)
 	} else {
-		coloredIndicator = colors.SubduedText(indicator, depth)
-		branchName = colors.SubduedText(node.Name, depth)
+		coloredIndicator = colors.Muted(indicator)
+		branchName = colors.Muted(node.Name)
 	}
 
 	// Build the branch line
@@ -295,14 +295,14 @@ func (s *Stack) renderShortBranch(result *strings.Builder, node *Node) {
 	}
 
 	// Format indicator and branch name
-	// Current branch: bright/saturated, others: subdued/desaturated
+	// Current branch: bright/saturated, others: muted gray
 	var coloredIndicator, branchName string
 	if node.IsCurrent {
 		coloredIndicator = colors.CycleText(indicator, depth)
 		branchName = colors.BranchCurrent(node.Name)
 	} else {
-		coloredIndicator = colors.SubduedText(indicator, depth)
-		branchName = colors.SubduedText(node.Name, depth)
+		coloredIndicator = colors.Muted(indicator)
+		branchName = colors.Muted(node.Name)
 	}
 
 	// Build suffix with current indicator
