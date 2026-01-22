@@ -68,7 +68,7 @@ func runLog(cmd *cobra.Command, args []string) error {
 	// Render based on flags
 	var output string
 	if logShort {
-		output = s.RenderShort()
+		output = s.RenderShort(repo)
 	} else {
 		opts := stack.TreeOptions{
 			ShowCommitSHA: true,

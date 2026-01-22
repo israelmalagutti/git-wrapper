@@ -2,6 +2,7 @@ package stack
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/israelmalagutti/git-wrapper/internal/colors"
@@ -36,7 +37,13 @@ func (s *Stack) RenderTree(repo *git.Repo, opts TreeOptions) string {
 	var result strings.Builder
 
 	// Render trunk's children recursively, then trunk
-	children := s.Trunk.SortedChildren()
+	// Sort by commit time (newer first) when repo is available
+	var children []*Node
+	if repo != nil {
+		children = sortChildrenByTime(repo, s.Trunk.Children)
+	} else {
+		children = s.Trunk.SortedChildren()
+	}
 	if len(children) > 0 {
 		// Start with empty rail - the rail character is added inside
 		s.renderSiblingsWithCommits(&result, children, repo, opts, "")
@@ -53,16 +60,17 @@ func (s *Stack) RenderTree(repo *git.Repo, opts TreeOptions) string {
 func (s *Stack) renderSiblingsWithCommits(result *strings.Builder, siblings []*Node, repo *git.Repo, opts TreeOptions, outerRail string) {
 	chars := colors.DefaultTreeChars()
 	vertLine := colors.Muted(chars.Vertical)
+	inSiblingGroup := len(siblings) > 1 // Are we rendering multiple siblings?
 
 	for i, node := range siblings {
 		isFirst := i == 0
 		hasChildren := len(node.Children) > 0
 
 		// Calculate the prefix for this node and its children
-		// If node has children, they form a visual group with the same indentation
+		// Indent if: we're in a sibling group AND this node has children to show
 		var nodeRail string
-		if hasChildren {
-			// Node with children: indent the whole subtree (including the node itself)
+		if inSiblingGroup && hasChildren {
+			// Node in sibling group with children: indent the subtree
 			nodeRail = outerRail + vertLine + "   "
 		} else {
 			nodeRail = outerRail
@@ -70,39 +78,32 @@ func (s *Stack) renderSiblingsWithCommits(result *strings.Builder, siblings []*N
 
 		// Render this node's children first (they appear above)
 		if hasChildren {
-			grandchildren := node.SortedChildren()
+			var grandchildren []*Node
+			if repo != nil {
+				grandchildren = sortChildrenByTime(repo, node.Children)
+			} else {
+				grandchildren = node.SortedChildren()
+			}
 			s.renderSiblingsWithCommits(result, grandchildren, repo, opts, nodeRail)
 		}
 
 		// Build prefix for this node's branch line
+		// Node with children in sibling group gets merge junction prefix
 		var branchPrefix string
 		if isFirst && outerRail == "" && !hasChildren {
 			// First sibling at root level that's a leaf - no prefix
 			branchPrefix = ""
-		} else if hasChildren {
-			// Node with children uses the indented rail
-			branchPrefix = nodeRail
+		} else if inSiblingGroup && hasChildren {
+			// Node in sibling group with children - use merge junction as prefix
+			branchPrefix = outerRail + colors.Muted(chars.Tee+chars.Horizontal+chars.Horizontal+chars.Horizontal)
 		} else {
-			// Leaf node uses outer rail
 			branchPrefix = outerRail
 		}
 
 		// commitRail is what comes before the vertical line for commits/connectors
-		var commitRail string
-		if hasChildren {
-			commitRail = nodeRail
-		} else {
-			commitRail = outerRail
-		}
+		commitRail := outerRail
 
 		s.renderBranchLineWithCommits(result, node, repo, opts, branchPrefix, commitRail)
-
-		// Show merge junction if this node has children
-		if hasChildren {
-			result.WriteString(outerRail)
-			result.WriteString(colors.Muted(chars.Tee + chars.Horizontal + chars.Horizontal + chars.Horizontal + chars.BottomRight))
-			result.WriteString("\n")
-		}
 	}
 }
 
@@ -267,6 +268,39 @@ func getTimeSinceLastCommit(repo *git.Repo, branch string) string {
 	return strings.TrimSpace(output)
 }
 
+// getCommitTimestamp returns the Unix timestamp of the last commit on a branch
+func getCommitTimestamp(repo *git.Repo, branch string) int64 {
+	output, err := repo.RunGitCommand("log", "-1", "--format=%ct", branch)
+	if err != nil {
+		return 0
+	}
+	var timestamp int64
+	fmt.Sscanf(strings.TrimSpace(output), "%d", &timestamp)
+	return timestamp
+}
+
+// sortChildrenByTime sorts children by their last commit time (newer first)
+func sortChildrenByTime(repo *git.Repo, children []*Node) []*Node {
+	if len(children) == 0 {
+		return nil
+	}
+	sorted := make([]*Node, len(children))
+	copy(sorted, children)
+
+	// Get timestamps for all children
+	timestamps := make(map[string]int64)
+	for _, child := range sorted {
+		timestamps[child.Name] = getCommitTimestamp(repo, child.Name)
+	}
+
+	// Sort by timestamp descending (newer first = higher timestamp first)
+	sort.Slice(sorted, func(i, j int) bool {
+		return timestamps[sorted[i].Name] > timestamps[sorted[j].Name]
+	})
+
+	return sorted
+}
+
 // getTrunkCommits returns the last n commits on trunk
 func getTrunkCommits(repo *git.Repo, branch string, n int) []Commit {
 	output, err := repo.RunGitCommand("log", "--oneline", fmt.Sprintf("-%d", n), branch)
@@ -334,15 +368,20 @@ func (s *Stack) getBranchCommits(repo *git.Repo, node *Node) []Commit {
 
 // RenderShort renders a compact view of the stack (top-down, no commits)
 // Uses T-junctions to show sibling relationships
-// RenderShort renders a compact view of the stack (no commits)
-func (s *Stack) RenderShort() string {
+func (s *Stack) RenderShort(repo *git.Repo) string {
 	var result strings.Builder
 	chars := colors.DefaultTreeChars()
 
 	// Render trunk's children recursively, then trunk
-	children := s.Trunk.SortedChildren()
+	// Sort by commit time (newer first) when repo is available
+	var children []*Node
+	if repo != nil {
+		children = sortChildrenByTime(repo, s.Trunk.Children)
+	} else {
+		children = s.Trunk.SortedChildren()
+	}
 	if len(children) > 0 {
-		s.renderSiblingsShort(&result, children, "")
+		s.renderSiblingsShort(&result, children, repo, "")
 	}
 
 	// Render trunk at the bottom
@@ -370,17 +409,19 @@ func (s *Stack) RenderShort() string {
 }
 
 // renderSiblingsShort renders siblings with a shared rail (short format)
-func (s *Stack) renderSiblingsShort(result *strings.Builder, siblings []*Node, outerRail string) {
+func (s *Stack) renderSiblingsShort(result *strings.Builder, siblings []*Node, repo *git.Repo, outerRail string) {
 	chars := colors.DefaultTreeChars()
 	vertLine := colors.Muted(chars.Vertical)
+	inSiblingGroup := len(siblings) > 1 // Are we rendering multiple siblings?
 
 	for i, node := range siblings {
 		isFirst := i == 0
 		hasChildren := len(node.Children) > 0
 
 		// Calculate the prefix for this node and its children
+		// Indent if: we're in a sibling group AND this node has children to show
 		var nodeRail string
-		if hasChildren {
+		if inSiblingGroup && hasChildren {
 			nodeRail = outerRail + vertLine + "   "
 		} else {
 			nodeRail = outerRail
@@ -388,17 +429,24 @@ func (s *Stack) renderSiblingsShort(result *strings.Builder, siblings []*Node, o
 
 		// Render children first (they appear above)
 		if hasChildren {
-			grandchildren := node.SortedChildren()
-			s.renderSiblingsShort(result, grandchildren, nodeRail)
+			var grandchildren []*Node
+			if repo != nil {
+				grandchildren = sortChildrenByTime(repo, node.Children)
+			} else {
+				grandchildren = node.SortedChildren()
+			}
+			s.renderSiblingsShort(result, grandchildren, repo, nodeRail)
 		}
 
 		// Build prefix for branch line
+		// Node with children in sibling group gets merge junction prefix
 		var branchPrefix string
 		if isFirst && outerRail == "" && !hasChildren {
 			// First sibling at root level that's a leaf - no prefix
 			branchPrefix = ""
-		} else if hasChildren {
-			branchPrefix = nodeRail
+		} else if inSiblingGroup && hasChildren {
+			// Node in sibling group with children - use merge junction as prefix
+			branchPrefix = outerRail + colors.Muted(chars.Tee+chars.Horizontal+chars.Horizontal+chars.Horizontal)
 		} else {
 			branchPrefix = outerRail
 		}
@@ -428,22 +476,9 @@ func (s *Stack) renderSiblingsShort(result *strings.Builder, siblings []*Node, o
 		result.WriteString("\n")
 
 		// Connector line
-		var connectorRail string
-		if hasChildren {
-			connectorRail = nodeRail
-		} else {
-			connectorRail = outerRail
-		}
-		result.WriteString(connectorRail)
+		result.WriteString(outerRail)
 		result.WriteString(vertLine)
 		result.WriteString("\n")
-
-		// Show merge junction if this node has children
-		if hasChildren {
-			result.WriteString(outerRail)
-			result.WriteString(colors.Muted(chars.Tee + chars.Horizontal + chars.Horizontal + chars.Horizontal + chars.BottomRight))
-			result.WriteString("\n")
-		}
 	}
 }
 
