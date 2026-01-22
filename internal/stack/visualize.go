@@ -137,11 +137,6 @@ func (s *Stack) renderBranchWithCommits(result *strings.Builder, node *Node, rep
 		}
 	}
 
-	// Add trunk indicator
-	if node.IsTrunk {
-		result.WriteString(colors.Muted(" (trunk)"))
-	}
-
 	result.WriteString("\n")
 
 	// Get and render commits for this branch
@@ -310,13 +305,10 @@ func (s *Stack) renderShortBranch(result *strings.Builder, node *Node) {
 		branchName = colors.CycleText(node.Name, depth)
 	}
 
-	// Build suffix with current and trunk indicators
+	// Build suffix with current indicator
 	suffix := ""
 	if node.IsCurrent {
 		suffix += colors.Muted(" (current)")
-	}
-	if node.IsTrunk {
-		suffix += colors.Muted(" (trunk)")
 	}
 
 	result.WriteString(fmt.Sprintf("%s %s%s\n", coloredIndicator, branchName, suffix))
