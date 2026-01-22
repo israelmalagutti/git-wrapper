@@ -2,6 +2,7 @@ package stack
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/israelmalagutti/git-wrapper/internal/config"
 	"github.com/israelmalagutti/git-wrapper/internal/git"
@@ -185,4 +186,17 @@ func (s *Stack) detectCycle(branch string, visited, recursionStack map[string]bo
 
 	recursionStack[branch] = false
 	return nil
+}
+
+// SortedChildren returns the children of a node sorted alphabetically by name
+func (n *Node) SortedChildren() []*Node {
+	if len(n.Children) == 0 {
+		return nil
+	}
+	sorted := make([]*Node, len(n.Children))
+	copy(sorted, n.Children)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Name < sorted[j].Name
+	})
+	return sorted
 }
