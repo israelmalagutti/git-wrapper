@@ -81,3 +81,115 @@ func (r *Repo) GetBranchCommit(branch string) (string, error) {
 	}
 	return output, nil
 }
+
+// Fetch fetches from all remotes with prune
+func (r *Repo) Fetch() error {
+	_, err := r.RunGitCommand("fetch", "--all", "--prune")
+	if err != nil {
+		return fmt.Errorf("failed to fetch: %w", err)
+	}
+	return nil
+}
+
+// HasRemoteBranch checks if a remote tracking branch exists
+func (r *Repo) HasRemoteBranch(branch, remote string) bool {
+	remoteBranch := remote + "/" + branch
+	_, err := r.RunGitCommand("rev-parse", "--verify", remoteBranch)
+	return err == nil
+}
+
+// CanFastForward checks if local branch can fast-forward to remote
+func (r *Repo) CanFastForward(local, remote string) (bool, error) {
+	// Get the merge base
+	mergeBase, err := r.RunGitCommand("merge-base", local, remote)
+	if err != nil {
+		return false, fmt.Errorf("failed to get merge base: %w", err)
+	}
+
+	// Get local commit
+	localCommit, err := r.RunGitCommand("rev-parse", local)
+	if err != nil {
+		return false, fmt.Errorf("failed to get local commit: %w", err)
+	}
+
+	// Can fast-forward if merge-base equals local commit
+	return mergeBase == localCommit, nil
+}
+
+// ResetToRemote hard resets a local branch to match remote
+func (r *Repo) ResetToRemote(branch, remoteBranch string) error {
+	// Save current branch
+	currentBranch, err := r.GetCurrentBranch()
+	if err != nil {
+		return err
+	}
+
+	// Checkout target branch
+	if currentBranch != branch {
+		if err := r.CheckoutBranch(branch); err != nil {
+			return err
+		}
+	}
+
+	// Reset to remote
+	_, err = r.RunGitCommand("reset", "--hard", remoteBranch)
+	if err != nil {
+		return fmt.Errorf("failed to reset to %s: %w", remoteBranch, err)
+	}
+
+	// Return to original branch if different
+	if currentBranch != branch {
+		if err := r.CheckoutBranch(currentBranch); err != nil {
+			return fmt.Errorf("failed to return to original branch: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// IsMergedInto checks if branch is merged into target
+func (r *Repo) IsMergedInto(branch, target string) (bool, error) {
+	// Get branches merged into target
+	output, err := r.RunGitCommand("branch", "--merged", target, "--format=%(refname:short)")
+	if err != nil {
+		return false, fmt.Errorf("failed to check merged branches: %w", err)
+	}
+
+	mergedBranches := strings.Split(output, "\n")
+	for _, merged := range mergedBranches {
+		if strings.TrimSpace(merged) == branch {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// IsBehind checks if branch is behind its parent (needs rebase)
+func (r *Repo) IsBehind(branch, parent string) (bool, error) {
+	// Get merge base between branch and parent
+	mergeBase, err := r.RunGitCommand("merge-base", branch, parent)
+	if err != nil {
+		return false, fmt.Errorf("failed to get merge base: %w", err)
+	}
+
+	// Get parent's current commit
+	parentCommit, err := r.RunGitCommand("rev-parse", parent)
+	if err != nil {
+		return false, fmt.Errorf("failed to get parent commit: %w", err)
+	}
+
+	// If merge base != parent commit, branch is behind
+	return mergeBase != parentCommit, nil
+}
+
+// Rebase rebases a branch onto another
+func (r *Repo) Rebase(branch, onto string) error {
+	_, err := r.RunGitCommand("rebase", onto, branch)
+	return err
+}
+
+// AbortRebase aborts an in-progress rebase
+func (r *Repo) AbortRebase() error {
+	_, err := r.RunGitCommand("rebase", "--abort")
+	return err
+}

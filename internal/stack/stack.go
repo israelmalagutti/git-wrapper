@@ -200,3 +200,34 @@ func (n *Node) SortedChildren() []*Node {
 	})
 	return sorted
 }
+
+// GetTopologicalOrder returns all non-trunk branches in topological order (parents before children)
+func (s *Stack) GetTopologicalOrder() []*Node {
+	var result []*Node
+	visited := make(map[string]bool)
+
+	var visit func(node *Node)
+	visit = func(node *Node) {
+		if visited[node.Name] {
+			return
+		}
+		visited[node.Name] = true
+
+		// Add this node if it's not trunk
+		if !node.IsTrunk {
+			result = append(result, node)
+		}
+
+		// Visit children in sorted order for deterministic output
+		for _, child := range node.SortedChildren() {
+			visit(child)
+		}
+	}
+
+	// Start from trunk
+	if s.Trunk != nil {
+		visit(s.Trunk)
+	}
+
+	return result
+}

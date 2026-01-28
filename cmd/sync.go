@@ -1,36 +1,43 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/israelmalagutti/git-wrapper/internal/config"
 	"github.com/israelmalagutti/git-wrapper/internal/git"
+	"github.com/israelmalagutti/git-wrapper/internal/stack"
 	"github.com/spf13/cobra"
 )
 
 var (
-	syncForce bool
+	syncForce   bool
+	syncRestack bool
 )
 
 var syncCmd = &cobra.Command{
 	Use:   "sync",
-	Short: "Sync metadata with git branches",
-	Long: `Sync the gw metadata with actual git branches.
+	Short: "Sync with remote and restack branches",
+	Long: `Sync the repository with the remote and restack all branches.
 
 This command:
-- Removes metadata for branches that no longer exist
-- Validates stack structure (detects cycles)
-- Ensures trunk branch has no parent
-- Fixes any inconsistencies in the stack
+1. Fetches from all remotes (git fetch --all --prune)
+2. Syncs trunk with remote (fast-forward or reset)
+3. Prompts to delete branches merged into trunk
+4. Restacks all branches that can be rebased without conflicts
 
 Example:
-  gw sync         # Clean up stale metadata
-  gw sync -f      # Force sync without prompting`,
+  gw sync              # Full sync with prompts
+  gw sync -f           # Force sync without prompts
+  gw sync --no-restack # Sync without restacking branches`,
 	RunE: runSync,
 }
 
 func init() {
 	syncCmd.Flags().BoolVarP(&syncForce, "force", "f", false, "Don't prompt for confirmation")
+	syncCmd.Flags().BoolVarP(&syncRestack, "restack", "r", true, "Restack branches after syncing")
 	rootCmd.AddCommand(syncCmd)
 }
 
@@ -53,119 +60,358 @@ func runSync(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load metadata: %w", err)
 	}
 
-	var staleBranches []string
-	var modified bool
+	// Save original branch to return to
+	originalBranch, _ := repo.GetCurrentBranch()
 
-	// Find branches in metadata that don't exist in git
+	// 1. Fetch from remote
+	fmt.Println("Fetching from remote...")
+	if err := repo.Fetch(); err != nil {
+		return fmt.Errorf("failed to fetch: %w", err)
+	}
+	fmt.Println("✓ Fetched from origin")
+
+	// 2. Sync trunk with remote
+	fmt.Printf("\nSyncing trunk (%s)...\n", cfg.Trunk)
+	if err := syncTrunkWithRemote(repo, cfg.Trunk, syncForce); err != nil {
+		return err
+	}
+
+	// 3. Clean up stale branches from metadata
+	if err := cleanStaleBranches(repo, metadata, syncForce); err != nil {
+		return err
+	}
+
+	// 4. Find and prompt to delete merged branches
+	if err := deleteMergedBranches(repo, metadata, cfg.Trunk, syncForce); err != nil {
+		return err
+	}
+
+	// 5. Auto-restack all branches without conflicts
+	if syncRestack {
+		// Rebuild stack after potential deletions
+		s, err := stack.BuildStack(repo, cfg, metadata)
+		if err != nil {
+			return fmt.Errorf("failed to build stack: %w", err)
+		}
+
+		fmt.Println("\nRestacking branches...")
+		succeeded, failed := restackAllBranches(repo, s)
+
+		// Report results
+		if len(succeeded) > 0 || len(failed) > 0 {
+			fmt.Println()
+		}
+
+		if len(succeeded) > 0 {
+			fmt.Printf("✓ %d branch(es) restacked\n", len(succeeded))
+		}
+
+		if len(failed) > 0 {
+			fmt.Printf("✗ %d branch(es) have conflicts:\n", len(failed))
+			for _, branch := range failed {
+				fmt.Printf("    %s\n", branch)
+			}
+			fmt.Println("\nRun 'gw restack' on each branch to resolve conflicts.")
+		}
+
+		if len(succeeded) == 0 && len(failed) == 0 {
+			fmt.Println("✓ All branches are up to date")
+		}
+	}
+
+	// Return to original branch if possible
+	if originalBranch != "" && repo.BranchExists(originalBranch) {
+		currentBranch, _ := repo.GetCurrentBranch()
+		if currentBranch != originalBranch {
+			_ = repo.CheckoutBranch(originalBranch)
+		}
+	}
+
+	fmt.Println("\nSync complete.")
+	return nil
+}
+
+// syncTrunkWithRemote syncs the trunk branch with its remote
+func syncTrunkWithRemote(repo *git.Repo, trunk string, force bool) error {
+	remote := "origin/" + trunk
+
+	// Check if remote branch exists
+	if !repo.HasRemoteBranch(trunk, "origin") {
+		fmt.Printf("✓ %s has no remote tracking branch\n", trunk)
+		return nil
+	}
+
+	// Check if local and remote are the same
+	localCommit, err := repo.GetBranchCommit(trunk)
+	if err != nil {
+		return err
+	}
+
+	remoteCommit, err := repo.GetBranchCommit(remote)
+	if err != nil {
+		return err
+	}
+
+	if localCommit == remoteCommit {
+		fmt.Printf("✓ %s is up to date with %s\n", trunk, remote)
+		return nil
+	}
+
+	// Check if we can fast-forward
+	canFF, err := repo.CanFastForward(trunk, remote)
+	if err != nil {
+		return err
+	}
+
+	// Save current branch
+	currentBranch, _ := repo.GetCurrentBranch()
+
+	if canFF {
+		// Fast-forward
+		if currentBranch != trunk {
+			if err := repo.CheckoutBranch(trunk); err != nil {
+				return err
+			}
+		}
+
+		_, err := repo.RunGitCommand("merge", "--ff-only", remote)
+		if err != nil {
+			return fmt.Errorf("failed to fast-forward: %w", err)
+		}
+
+		fmt.Printf("✓ Fast-forwarded %s to %s\n", trunk, remote)
+
+		// Return to original branch
+		if currentBranch != trunk && currentBranch != "" {
+			_ = repo.CheckoutBranch(currentBranch)
+		}
+	} else {
+		// Can't fast-forward - need to reset
+		if !force {
+			fmt.Printf("Cannot fast-forward %s (local has diverged).\n", trunk)
+			fmt.Printf("Reset %s to %s? [y/N]: ", trunk, remote)
+			if !confirm() {
+				fmt.Println("Skipped trunk sync.")
+				return nil
+			}
+		}
+
+		if err := repo.ResetToRemote(trunk, remote); err != nil {
+			return err
+		}
+		fmt.Printf("✓ Reset %s to %s\n", trunk, remote)
+	}
+
+	return nil
+}
+
+// cleanStaleBranches removes branches from metadata that no longer exist in git
+func cleanStaleBranches(repo *git.Repo, metadata *config.Metadata, force bool) error {
+	var staleBranches []string
+
 	for branch := range metadata.Branches {
 		if !repo.BranchExists(branch) {
 			staleBranches = append(staleBranches, branch)
 		}
 	}
 
-	if len(staleBranches) > 0 {
-		fmt.Printf("Found %d stale branch(es) in metadata:\n", len(staleBranches))
-		for _, branch := range staleBranches {
-			fmt.Printf("  - %s (deleted from git)\n", branch)
+	if len(staleBranches) == 0 {
+		return nil
+	}
+
+	fmt.Printf("\nFound %d stale branch(es) in metadata:\n", len(staleBranches))
+	for _, branch := range staleBranches {
+		fmt.Printf("  - %s (deleted from git)\n", branch)
+	}
+
+	if !force {
+		fmt.Print("Remove from metadata? [y/N]: ")
+		if !confirm() {
+			return nil
+		}
+	}
+
+	for _, branch := range staleBranches {
+		metadata.UntrackBranch(branch)
+	}
+
+	if err := metadata.Save(repo.GetMetadataPath()); err != nil {
+		return fmt.Errorf("failed to save metadata: %w", err)
+	}
+
+	fmt.Printf("✓ Removed %d stale branch(es) from metadata\n", len(staleBranches))
+	return nil
+}
+
+// deleteMergedBranches finds branches merged into trunk and prompts to delete them
+func deleteMergedBranches(repo *git.Repo, metadata *config.Metadata, trunk string, force bool) error {
+	var mergedBranches []string
+
+	for branch := range metadata.Branches {
+		if branch == trunk {
+			continue
 		}
 
-		if !syncForce {
-			fmt.Print("\nRemove these branches from metadata? [y/N]: ")
-			var response string
-			fmt.Scanln(&response)
-			if response != "y" && response != "Y" {
-				fmt.Println("Sync cancelled.")
+		isMerged, err := repo.IsMergedInto(branch, trunk)
+		if err != nil {
+			continue
+		}
+
+		if isMerged {
+			mergedBranches = append(mergedBranches, branch)
+		}
+	}
+
+	if len(mergedBranches) == 0 {
+		return nil
+	}
+
+	fmt.Printf("\nFound %d branch(es) merged into %s:\n", len(mergedBranches), trunk)
+
+	for _, branch := range mergedBranches {
+		fmt.Printf("  - %s\n", branch)
+	}
+
+	if force {
+		// Delete all without prompting
+		fmt.Println()
+		for _, branch := range mergedBranches {
+			if err := deleteBranchAndCleanup(repo, metadata, branch); err != nil {
+				fmt.Printf("  ✗ Failed to delete %s: %v\n", branch, err)
+			} else {
+				fmt.Printf("  ✓ Deleted %s\n", branch)
+			}
+		}
+	} else {
+		// Prompt for each branch with all/none options
+		fmt.Println()
+		deleteAll := false
+		for _, branch := range mergedBranches {
+			if deleteAll {
+				if err := deleteBranchAndCleanup(repo, metadata, branch); err != nil {
+					fmt.Printf("  ✗ Failed to delete %s: %v\n", branch, err)
+				} else {
+					fmt.Printf("  ✓ Deleted %s\n", branch)
+				}
+				continue
+			}
+
+			fmt.Printf("Delete '%s'? [y/n/a(ll)/q(uit)]: ", branch)
+			action := confirmWithOptions()
+
+			switch action {
+			case "yes":
+				if err := deleteBranchAndCleanup(repo, metadata, branch); err != nil {
+					fmt.Printf("  ✗ Failed to delete %s: %v\n", branch, err)
+				} else {
+					fmt.Printf("  ✓ Deleted %s\n", branch)
+				}
+			case "all":
+				deleteAll = true
+				if err := deleteBranchAndCleanup(repo, metadata, branch); err != nil {
+					fmt.Printf("  ✗ Failed to delete %s: %v\n", branch, err)
+				} else {
+					fmt.Printf("  ✓ Deleted %s\n", branch)
+				}
+			case "quit":
 				return nil
 			}
 		}
-
-		// Remove stale branches
-		for _, branch := range staleBranches {
-			metadata.UntrackBranch(branch)
-			modified = true
-		}
-
-		fmt.Printf("✓ Removed %d stale branch(es) from metadata\n", len(staleBranches))
-	}
-
-	// Validate trunk branch
-	if !repo.BranchExists(cfg.Trunk) {
-		return fmt.Errorf("trunk branch '%s' does not exist", cfg.Trunk)
-	}
-
-	// Ensure trunk has no parent in metadata
-	if trunkMeta, exists := metadata.Branches[cfg.Trunk]; exists && trunkMeta.Parent != "" {
-		fmt.Printf("⚠ Warning: trunk branch '%s' has parent '%s' in metadata\n", cfg.Trunk, trunkMeta.Parent)
-		if !syncForce {
-			fmt.Print("Fix this by removing trunk's parent? [y/N]: ")
-			var response string
-			fmt.Scanln(&response)
-			if response != "y" && response != "Y" {
-				fmt.Println("Sync cancelled.")
-				return nil
-			}
-		}
-		metadata.UntrackBranch(cfg.Trunk)
-		modified = true
-		fmt.Printf("✓ Fixed trunk branch '%s' (removed invalid parent)\n", cfg.Trunk)
-	}
-
-	// Detect cycles in stack
-	if err := detectCycles(metadata); err != nil {
-		return fmt.Errorf("cycle detected in stack: %w", err)
-	}
-
-	// Save metadata if modified
-	if modified {
-		if err := metadata.Save(repo.GetMetadataPath()); err != nil {
-			return fmt.Errorf("failed to save metadata: %w", err)
-		}
-	}
-
-	if !modified && len(staleBranches) == 0 {
-		fmt.Println("✓ Everything is in sync")
 	}
 
 	return nil
 }
 
-// detectCycles detects cycles in the branch parent-child relationships
-func detectCycles(metadata *config.Metadata) error {
-	visited := make(map[string]bool)
-	recStack := make(map[string]bool)
+// deleteBranchAndCleanup deletes a branch and updates metadata
+func deleteBranchAndCleanup(repo *git.Repo, metadata *config.Metadata, branch string) error {
+	// Update children to point to deleted branch's parent
+	parent, _ := metadata.GetParent(branch)
+	children := metadata.GetChildren(branch)
 
-	var detectCycle func(branch string) error
-	detectCycle = func(branch string) error {
-		visited[branch] = true
-		recStack[branch] = true
-
-		meta, exists := metadata.Branches[branch]
-		if !exists || meta.Parent == "" {
-			recStack[branch] = false
-			return nil
-		}
-
-		if recStack[meta.Parent] {
-			return fmt.Errorf("cycle detected: %s -> %s", branch, meta.Parent)
-		}
-
-		if !visited[meta.Parent] {
-			if err := detectCycle(meta.Parent); err != nil {
-				return err
-			}
-		}
-
-		recStack[branch] = false
-		return nil
-	}
-
-	for branch := range metadata.Branches {
-		if !visited[branch] {
-			if err := detectCycle(branch); err != nil {
-				return err
-			}
+	for _, child := range children {
+		if parent != "" {
+			metadata.UpdateParent(child, parent)
 		}
 	}
 
-	return nil
+	// Delete git branch
+	if err := repo.DeleteBranch(branch, true); err != nil {
+		return err
+	}
+
+	// Remove from metadata
+	metadata.UntrackBranch(branch)
+
+	// Save metadata
+	return metadata.Save(repo.GetMetadataPath())
+}
+
+// restackAllBranches restacks all branches in topological order, skipping those with conflicts
+func restackAllBranches(repo *git.Repo, s *stack.Stack) (succeeded, failed []string) {
+	branches := s.GetTopologicalOrder()
+
+	for _, node := range branches {
+		if node.Parent == nil {
+			continue
+		}
+
+		// Check if needs rebase
+		needsRebase, err := repo.IsBehind(node.Name, node.Parent.Name)
+		if err != nil {
+			continue
+		}
+
+		if !needsRebase {
+			continue
+		}
+
+		fmt.Printf("  Rebasing %s onto %s...", node.Name, node.Parent.Name)
+
+		// Try rebase
+		err = repo.Rebase(node.Name, node.Parent.Name)
+		if err != nil {
+			// Abort and record failure
+			_ = repo.AbortRebase()
+			failed = append(failed, node.Name)
+			fmt.Println(" ✗ conflict")
+		} else {
+			succeeded = append(succeeded, node.Name)
+			fmt.Println(" ✓")
+		}
+	}
+
+	return succeeded, failed
+}
+
+// confirm reads a y/n response from stdin
+func confirm() bool {
+	reader := bufio.NewReader(os.Stdin)
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return false
+	}
+	response = strings.TrimSpace(strings.ToLower(response))
+	return response == "y" || response == "yes"
+}
+
+// confirmWithOptions reads a response with y/n/a/q options
+// Returns: "yes", "no", "all", or "quit"
+func confirmWithOptions() string {
+	reader := bufio.NewReader(os.Stdin)
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return "no"
+	}
+	response = strings.TrimSpace(strings.ToLower(response))
+
+	switch response {
+	case "y", "yes":
+		return "yes"
+	case "a", "all":
+		return "all"
+	case "q", "quit":
+		return "quit"
+	default:
+		return "no"
+	}
 }
