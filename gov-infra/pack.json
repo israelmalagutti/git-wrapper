@@ -1,0 +1,32 @@
+{
+  "$schema": "https://gov.pai.dev/schemas/pack.schema.json",
+  "schemaVersion": 1,
+  "packVersion": "2f9275c2707d",
+  "packDigest": "bb28e962509ace6bf1d59e58b6e216290af7cee60cdb49f2aa03dd0c2b5cda76",
+  "domain": "custom",
+  "projectSlug": "git-wrapper",
+  "generatedAt": "2026-01-28T00:00:00Z",
+  "source": {
+    "commitSha": "UNKNOWN",
+    "branch": "main"
+  },
+  "artifacts": {
+    "planning": [
+      "gov-infra/README.md",
+      "gov-infra/AGENTS.md",
+      "gov-infra/planning/git-wrapper-controls-matrix.md",
+      "gov-infra/planning/git-wrapper-threat-model.md",
+      "gov-infra/planning/git-wrapper-10of10-rubric.md",
+      "gov-infra/planning/git-wrapper-10of10-roadmap.md",
+      "gov-infra/planning/git-wrapper-evidence-plan.md",
+      "gov-infra/planning/git-wrapper-supply-chain-allowlist.txt",
+      "gov-infra/planning/git-wrapper-ai-drift-recovery.md"
+    ],
+    "verifiers": [
+      "gov-infra/verifiers/gov-verify-rubric.sh"
+    ],
+    "evidence": [
+      "gov-infra/evidence/gov-rubric-report.json"
+    ]
+  }
+}

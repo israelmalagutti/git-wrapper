@@ -1,0 +1,2 @@
+awk: cmd. line:1: =="go"{print ;exit}
+awk: cmd. line:1: ^ syntax error
