@@ -15,9 +15,9 @@ import (
 )
 
 var (
-	checkoutTrunk        bool
+	checkoutTrunk         bool
 	checkoutShowUntracked bool
-	checkoutStack        bool
+	checkoutStack         bool
 )
 
 var checkoutCmd = &cobra.Command{
@@ -163,9 +163,7 @@ func runCheckout(cmd *cobra.Command, args []string) error {
 
 		// Create options with context
 		options := make([]string, len(branches))
-		for i, branch := range branches {
-			options[i] = branch
-		}
+		copy(options, branches)
 
 		// Interactive selector
 		prompt := &survey.Select{

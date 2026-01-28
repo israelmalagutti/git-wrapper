@@ -3,37 +3,6 @@ Running tests with coverage...
 	github.com/israelmalagutti/git-wrapper/cmd		coverage: 0.0% of statements
 ok  	github.com/israelmalagutti/git-wrapper/internal/colors	(cached)	coverage: 28.3% of statements
 ok  	github.com/israelmalagutti/git-wrapper/internal/config	(cached)	coverage: 83.0% of statements
---- FAIL: TestListBranches (0.03s)
-    --- FAIL: TestListBranches/lists_all_branches (0.00s)
-        git_test.go:115: expected 3 branches, got 0: []
---- FAIL: TestBranchExists (0.03s)
-    --- FAIL: TestBranchExists/returns_true_for_existing_branch (0.00s)
-        git_test.go:128: expected true for 'main'
---- FAIL: TestCreateBranch (0.03s)
-    --- FAIL: TestCreateBranch/creates_new_branch (0.00s)
-        git_test.go:148: CreateBranch failed: failed to create branch new-branch: git branch new-branch failed: exit status 128
-            fatal: not a valid object name: 'main'
---- FAIL: TestCheckoutBranch (0.03s)
-    --- FAIL: TestCheckoutBranch/switches_to_branch (0.00s)
-        git_test.go:167: CheckoutBranch failed: failed to checkout branch feat-checkout: git checkout feat-checkout failed: exit status 1
-            error: pathspec 'feat-checkout' did not match any file(s) known to git
---- FAIL: TestDeleteBranch (0.03s)
-    --- FAIL: TestDeleteBranch/deletes_branch (0.00s)
-        git_test.go:194: DeleteBranch failed: failed to delete branch to-delete: git branch -D to-delete failed: exit status 1
-            error: branch 'to-delete' not found
---- FAIL: TestGetBranchCommit (0.03s)
-    --- FAIL: TestGetBranchCommit/returns_commit_SHA (0.00s)
-        git_test.go:212: GetBranchCommit failed: failed to get commit for branch main: git rev-parse main failed: exit status 128
-            fatal: ambiguous argument 'main': unknown revision or path not in the working tree.
-            Use '--' to separate paths from revisions, like this:
-            'git <command> [<revision>...] -- [<file>...]'
-            main
---- FAIL: TestRunGitCommand (0.03s)
-    --- FAIL: TestRunGitCommand/runs_git_command_successfully (0.00s)
-        git_test.go:234: expected empty output, got 'A  README.md'
-FAIL
-coverage: 44.5% of statements
-FAIL	github.com/israelmalagutti/git-wrapper/internal/git	0.357s
-ok  	github.com/israelmalagutti/git-wrapper/internal/stack	(cached)	coverage: 10.9% of statements
-FAIL
-make: *** [Makefile:81: test-coverage] Error 1
+ok  	github.com/israelmalagutti/git-wrapper/internal/git	(cached)	coverage: 46.4% of statements
+ok  	github.com/israelmalagutti/git-wrapper/internal/stack	(cached)	coverage: 11.4% of statements
+✓ Coverage report: coverage.html

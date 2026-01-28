@@ -10,9 +10,9 @@ import (
 
 // ANSI escape codes for the 16-color palette (theme-adaptive)
 const (
-	Reset = "\033[0m"
-	Bold  = "\033[1m"
-	Dim   = "\033[2m"
+	Reset  = "\033[0m"
+	Bold   = "\033[1m"
+	Dim    = "\033[2m"
 	Italic = "\033[3m"
 
 	// Standard colors (30-37)
@@ -218,16 +218,16 @@ func Sprintf(format string, a ...interface{}) string {
 
 // TreeChars provides characters for tree visualization
 type TreeChars struct {
-	Vertical      string // │
-	Horizontal    string // ─
-	Corner        string // └
-	TopCorner     string // ┌
-	BottomRight   string // ┘
-	Tee           string // ├
-	Arrow         string // ▸ or >
-	Bullet        string // ●
-	Circle        string // ○
-	FilledCircle  string // ◉
+	Vertical     string // │
+	Horizontal   string // ─
+	Corner       string // └
+	TopCorner    string // ┌
+	BottomRight  string // ┘
+	Tee          string // ├
+	Arrow        string // ▸ or >
+	Bullet       string // ●
+	Circle       string // ○
+	FilledCircle string // ◉
 }
 
 // DefaultTreeChars returns the default tree drawing characters

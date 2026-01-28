@@ -178,7 +178,7 @@ ensure_golangci_lint_pinned() {
   fi
 
   echo "Installing golangci-lint ${v} into ${GOV_TOOLS_BIN}..." >&2
-  if ! GOBIN="${GOV_TOOLS_BIN}" go install "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${v}"; then
+  if ! GOBIN="${GOV_TOOLS_BIN}" go install "github.com/golangci/golangci-lint/cmd/golangci-lint@${v}"; then
     echo "BLOCKED: failed to install pinned golangci-lint ${v} (check network/toolchain)" >&2
     return 2
   fi

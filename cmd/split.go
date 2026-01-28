@@ -269,7 +269,9 @@ func splitByCommitMode(repo *git.Repo, cfg *config.Config, metadata *config.Meta
 	}
 
 	// Update current branch's parent to new branch
-	metadata.UpdateParent(currentBranch, newBranchName)
+	if err := metadata.UpdateParent(currentBranch, newBranchName); err != nil {
+		return fmt.Errorf("failed to update metadata: %w", err)
+	}
 	if err := metadata.Save(repo.GetMetadataPath()); err != nil {
 		return fmt.Errorf("failed to save metadata: %w", err)
 	}
@@ -304,9 +306,15 @@ func splitByHunkMode(repo *git.Repo, cfg *config.Config, metadata *config.Metada
 	fmt.Println("Preparing changes for interactive staging...")
 	if _, err := repo.RunGitCommand("cherry-pick", "-n", fmt.Sprintf("%s..%s", parentBranch, currentHEAD)); err != nil {
 		// Reset if cherry-pick fails
-		repo.RunGitCommand("cherry-pick", "--abort")
-		repo.RunGitCommand("checkout", currentBranch)
-		repo.RunGitCommand("branch", "-D", newBranchName)
+		if _, abortErr := repo.RunGitCommand("cherry-pick", "--abort"); abortErr != nil {
+			return fmt.Errorf("failed to prepare changes: %w\nAlso failed to abort cherry-pick: %v", err, abortErr)
+		}
+		if _, checkoutErr := repo.RunGitCommand("checkout", currentBranch); checkoutErr != nil {
+			return fmt.Errorf("failed to prepare changes: %w\nAlso failed to checkout '%s': %v", err, currentBranch, checkoutErr)
+		}
+		if _, deleteErr := repo.RunGitCommand("branch", "-D", newBranchName); deleteErr != nil {
+			return fmt.Errorf("failed to prepare changes: %w\nAlso failed to delete branch '%s': %v", err, newBranchName, deleteErr)
+		}
 		return fmt.Errorf("failed to prepare changes: %w", err)
 	}
 
@@ -319,7 +327,7 @@ func splitByHunkMode(repo *git.Repo, cfg *config.Config, metadata *config.Metada
 	fmt.Println("\nSelect changes for the NEW PARENT branch:")
 	fmt.Println("(y=stage, n=skip, s=split, q=quit staging)")
 	if _, err := repo.RunGitCommand("add", "--patch"); err != nil {
-		// User might have quit, check if anything was staged
+		fmt.Printf("Interactive staging exited: %v\n", err)
 	}
 
 	// Check if anything was staged
@@ -331,8 +339,12 @@ func splitByHunkMode(repo *git.Repo, cfg *config.Config, metadata *config.Metada
 	if !staged {
 		// Nothing staged, abort
 		fmt.Println("No changes staged, aborting split...")
-		repo.RunGitCommand("checkout", currentBranch)
-		repo.RunGitCommand("branch", "-D", newBranchName)
+		if _, checkoutErr := repo.RunGitCommand("checkout", currentBranch); checkoutErr != nil {
+			return fmt.Errorf("failed to abort split; also failed to checkout '%s': %v", currentBranch, checkoutErr)
+		}
+		if _, deleteErr := repo.RunGitCommand("branch", "-D", newBranchName); deleteErr != nil {
+			return fmt.Errorf("failed to abort split; also failed to delete branch '%s': %v", newBranchName, deleteErr)
+		}
 		return fmt.Errorf("no changes selected for new branch")
 	}
 
@@ -343,7 +355,7 @@ func splitByHunkMode(repo *git.Repo, cfg *config.Config, metadata *config.Metada
 
 	// Clean up unstaged changes
 	if _, err := repo.RunGitCommand("checkout", "--", "."); err != nil {
-		// Ignore errors
+		return fmt.Errorf("failed to discard unstaged changes: %w", err)
 	}
 
 	// Track new branch
@@ -358,7 +370,9 @@ func splitByHunkMode(repo *git.Repo, cfg *config.Config, metadata *config.Metada
 	}
 
 	// Update current branch's parent
-	metadata.UpdateParent(currentBranch, newBranchName)
+	if err := metadata.UpdateParent(currentBranch, newBranchName); err != nil {
+		return fmt.Errorf("failed to update metadata: %w", err)
+	}
 	if err := metadata.Save(repo.GetMetadataPath()); err != nil {
 		return fmt.Errorf("failed to save metadata: %w", err)
 	}
@@ -405,9 +419,15 @@ func splitByFileMode(repo *git.Repo, cfg *config.Config, metadata *config.Metada
 
 	// Cherry-pick all changes as unstaged
 	if _, err := repo.RunGitCommand("cherry-pick", "-n", fmt.Sprintf("%s..%s", parentBranch, currentHEAD)); err != nil {
-		repo.RunGitCommand("cherry-pick", "--abort")
-		repo.RunGitCommand("checkout", currentBranch)
-		repo.RunGitCommand("branch", "-D", newBranchName)
+		if _, abortErr := repo.RunGitCommand("cherry-pick", "--abort"); abortErr != nil {
+			return fmt.Errorf("failed to prepare changes: %w\nAlso failed to abort cherry-pick: %v", err, abortErr)
+		}
+		if _, checkoutErr := repo.RunGitCommand("checkout", currentBranch); checkoutErr != nil {
+			return fmt.Errorf("failed to prepare changes: %w\nAlso failed to checkout '%s': %v", err, currentBranch, checkoutErr)
+		}
+		if _, deleteErr := repo.RunGitCommand("branch", "-D", newBranchName); deleteErr != nil {
+			return fmt.Errorf("failed to prepare changes: %w\nAlso failed to delete branch '%s': %v", err, newBranchName, deleteErr)
+		}
 		return fmt.Errorf("failed to prepare changes: %w", err)
 	}
 
@@ -419,7 +439,9 @@ func splitByFileMode(repo *git.Repo, cfg *config.Config, metadata *config.Metada
 	// Stage only files matching patterns
 	for _, pattern := range patterns {
 		fmt.Printf("Adding files matching '%s'...\n", pattern)
-		repo.RunGitCommand("add", pattern)
+		if _, err := repo.RunGitCommand("add", pattern); err != nil {
+			return fmt.Errorf("failed to add pattern '%s': %w", pattern, err)
+		}
 	}
 
 	// Check if anything was staged
@@ -430,8 +452,12 @@ func splitByFileMode(repo *git.Repo, cfg *config.Config, metadata *config.Metada
 
 	if !staged {
 		fmt.Println("No files matched patterns, aborting split...")
-		repo.RunGitCommand("checkout", currentBranch)
-		repo.RunGitCommand("branch", "-D", newBranchName)
+		if _, checkoutErr := repo.RunGitCommand("checkout", currentBranch); checkoutErr != nil {
+			return fmt.Errorf("failed to abort split; also failed to checkout '%s': %v", currentBranch, checkoutErr)
+		}
+		if _, deleteErr := repo.RunGitCommand("branch", "-D", newBranchName); deleteErr != nil {
+			return fmt.Errorf("failed to abort split; also failed to delete branch '%s': %v", newBranchName, deleteErr)
+		}
 		return fmt.Errorf("no files matched the specified patterns")
 	}
 
@@ -442,7 +468,9 @@ func splitByFileMode(repo *git.Repo, cfg *config.Config, metadata *config.Metada
 	}
 
 	// Clean up unstaged changes
-	repo.RunGitCommand("checkout", "--", ".")
+	if _, err := repo.RunGitCommand("checkout", "--", "."); err != nil {
+		return fmt.Errorf("failed to discard unstaged changes: %w", err)
+	}
 
 	// Track new branch
 	metadata.TrackBranch(newBranchName, parentBranch)
@@ -456,7 +484,9 @@ func splitByFileMode(repo *git.Repo, cfg *config.Config, metadata *config.Metada
 	}
 
 	// Update parent
-	metadata.UpdateParent(currentBranch, newBranchName)
+	if err := metadata.UpdateParent(currentBranch, newBranchName); err != nil {
+		return fmt.Errorf("failed to update metadata: %w", err)
+	}
 	if err := metadata.Save(repo.GetMetadataPath()); err != nil {
 		return fmt.Errorf("failed to save metadata: %w", err)
 	}
