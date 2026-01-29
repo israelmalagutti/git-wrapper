@@ -1,8 +1,8 @@
 Running tests with coverage...
-	github.com/israelmalagutti/git-wrapper		coverage: 0.0% of statements
-	github.com/israelmalagutti/git-wrapper/cmd		coverage: 0.0% of statements
-ok  	github.com/israelmalagutti/git-wrapper/internal/colors	(cached)	coverage: 28.3% of statements
-ok  	github.com/israelmalagutti/git-wrapper/internal/config	(cached)	coverage: 83.0% of statements
-ok  	github.com/israelmalagutti/git-wrapper/internal/git	(cached)	coverage: 46.4% of statements
-ok  	github.com/israelmalagutti/git-wrapper/internal/stack	(cached)	coverage: 11.4% of statements
+ok  	github.com/israelmalagutti/git-wrapper	(cached)	coverage: 100.0% of statements
+ok  	github.com/israelmalagutti/git-wrapper/cmd	2.911s	coverage: 72.5% of statements
+ok  	github.com/israelmalagutti/git-wrapper/internal/colors	(cached)	coverage: 95.7% of statements
+ok  	github.com/israelmalagutti/git-wrapper/internal/config	(cached)	coverage: 90.6% of statements
+ok  	github.com/israelmalagutti/git-wrapper/internal/git	0.302s	coverage: 91.8% of statements
+ok  	github.com/israelmalagutti/git-wrapper/internal/stack	1.168s	coverage: 92.7% of statements
 ✓ Coverage report: coverage.html

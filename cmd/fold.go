@@ -104,7 +104,7 @@ func runFold(cmd *cobra.Command, args []string) error {
 			Message: fmt.Sprintf("Are you sure you want to %s?", action),
 			Default: false,
 		}
-		if err := survey.AskOne(prompt, &confirm); err != nil {
+		if err := askOne(prompt, &confirm); err != nil {
 			return fmt.Errorf("confirmation cancelled: %w", err)
 		}
 

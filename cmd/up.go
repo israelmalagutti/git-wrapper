@@ -107,7 +107,7 @@ func runUp(cmd *cobra.Command, args []string) error {
 			}
 
 			var selected string
-			if err := survey.AskOne(prompt, &selected); err != nil {
+			if err := askOne(prompt, &selected); err != nil {
 				if errors.Is(err, terminal.InterruptErr) {
 					fmt.Println("Cancelled.")
 					return nil

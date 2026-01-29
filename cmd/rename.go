@@ -64,7 +64,7 @@ func runRename(cmd *cobra.Command, args []string) error {
 			Message: fmt.Sprintf("New name for '%s':", currentBranch),
 		}
 
-		if err := survey.AskOne(prompt, &newName, survey.WithValidator(survey.Required)); err != nil {
+		if err := askOne(prompt, &newName, survey.WithValidator(survey.Required)); err != nil {
 			if errors.Is(err, terminal.InterruptErr) {
 				fmt.Println(colors.Muted("Cancelled."))
 				return nil

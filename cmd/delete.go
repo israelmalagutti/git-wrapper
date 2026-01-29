@@ -99,7 +99,7 @@ func runDelete(cmd *cobra.Command, args []string) error {
 		}
 
 		var selected string
-		if err := survey.AskOne(prompt, &selected); err != nil {
+		if err := askOne(prompt, &selected); err != nil {
 			return fmt.Errorf("selection cancelled: %w", err)
 		}
 
@@ -157,7 +157,7 @@ func runDelete(cmd *cobra.Command, args []string) error {
 			Message: message,
 			Default: false,
 		}
-		if err := survey.AskOne(prompt, &confirm); err != nil {
+		if err := askOne(prompt, &confirm); err != nil {
 			return fmt.Errorf("confirmation cancelled: %w", err)
 		}
 

@@ -248,3 +248,46 @@ func TestIsEnabled(t *testing.T) {
 
 	SetEnabled(originalEnabled)
 }
+
+func TestAdditionalFormatting(t *testing.T) {
+	originalEnabled := enabled
+	SetEnabled(true)
+	defer SetEnabled(originalEnabled)
+
+	if Highlight("hi") == "" {
+		t.Error("Highlight should return formatted text")
+	}
+	if StatusApproved("ok") == "" || StatusPending("wait") == "" || StatusChangesRequested("chg") == "" || StatusDraft("draft") == "" {
+		t.Error("status helpers should return formatted text")
+	}
+	if BoldText("b") == "" || SubduedText("s", 2) == "" || ItalicText("i") == "" {
+		t.Error("text helpers should return formatted text")
+	}
+	if Sprintf("hi %s", "there") != "hi there" {
+		t.Error("Sprintf should behave like fmt.Sprintf")
+	}
+	if CommitSHA("abc") == "" {
+		t.Error("CommitSHA should return formatted text")
+	}
+}
+
+func TestApplyHelpers(t *testing.T) {
+	originalEnabled := enabled
+	SetEnabled(true)
+	defer SetEnabled(originalEnabled)
+
+	if got := apply(Green, ""); got != "" {
+		t.Errorf("expected empty text to stay empty, got %q", got)
+	}
+	if got := applyMultiple("", Bold, Green); got != "" {
+		t.Errorf("expected empty text to stay empty, got %q", got)
+	}
+
+	SetEnabled(false)
+	if got := apply(Green, "text"); got != "text" {
+		t.Errorf("expected disabled colors to return plain text, got %q", got)
+	}
+	if got := applyMultiple("text", Bold, Green); got != "text" {
+		t.Errorf("expected disabled colors to return plain text, got %q", got)
+	}
+}

@@ -70,15 +70,19 @@ clean:
 	@go clean
 	@echo "✓ Clean complete"
 
+# Go cache locations (override if needed)
+GOCACHE ?= /tmp/go-build-cache
+GOMODCACHE ?= /tmp/go-mod-cache
+
 # Run tests
 test:
 	@echo "Running tests..."
-	@go test -v ./...
+	@GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) go test -v ./...
 
 # Run tests with coverage
 test-coverage:
 	@echo "Running tests with coverage..."
-	@go test -coverprofile=coverage.out ./...
+	@GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) go test -coverprofile=coverage.out ./...
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "✓ Coverage report: coverage.html"
 
