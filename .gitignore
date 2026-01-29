@@ -37,3 +37,6 @@ temp/
 
 # AI markdowns
 ai-context/
+
+.theory/
+gov-infra/*

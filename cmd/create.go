@@ -69,7 +69,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		prompt := &survey.Input{
 			Message: "Branch name:",
 		}
-		err = survey.AskOne(prompt, &branchName, survey.WithValidator(survey.Required))
+		err = askOne(prompt, &branchName, survey.WithValidator(survey.Required))
 		if err != nil {
 			if errors.Is(err, terminal.InterruptErr) {
 				fmt.Println(colors.Muted("Cancelled."))
@@ -302,7 +302,7 @@ func promptNoStagedChanges() (string, error) {
 	}
 
 	var selected string
-	if err := survey.AskOne(prompt, &selected); err != nil {
+	if err := askOne(prompt, &selected); err != nil {
 		return "", err
 	}
 
@@ -345,7 +345,7 @@ func promptHasChanges(hasStaged bool) (string, error) {
 	}
 
 	var selected string
-	if err := survey.AskOne(prompt, &selected); err != nil {
+	if err := askOne(prompt, &selected); err != nil {
 		return "", err
 	}
 
@@ -382,7 +382,7 @@ func promptCommitMessage() (string, error) {
 	prompt := &survey.Input{
 		Message: "Commit message:",
 	}
-	if err := survey.AskOne(prompt, &msg, survey.WithValidator(survey.Required)); err != nil {
+	if err := askOne(prompt, &msg, survey.WithValidator(survey.Required)); err != nil {
 		return "", err
 	}
 	return msg, nil
@@ -572,7 +572,7 @@ func promptTrackUntrackedFiles(repo *git.Repo) error {
 		Default: false,
 	}
 
-	if err := survey.AskOne(prompt, &trackThem); err != nil {
+	if err := askOne(prompt, &trackThem); err != nil {
 		return err
 	}
 
@@ -591,7 +591,7 @@ func promptTrackUntrackedFiles(repo *git.Repo) error {
 		Options: untrackedFiles,
 	}
 
-	if err := survey.AskOne(selectPrompt, &selectedFiles); err != nil {
+	if err := askOne(selectPrompt, &selectedFiles); err != nil {
 		return err
 	}
 

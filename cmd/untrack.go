@@ -101,7 +101,7 @@ func runUntrack(cmd *cobra.Command, args []string) error {
 			Default: false,
 		}
 
-		if err := survey.AskOne(prompt, &confirm); err != nil {
+		if err := askOne(prompt, &confirm); err != nil {
 			if errors.Is(err, terminal.InterruptErr) {
 				fmt.Println(colors.Muted("Cancelled."))
 				return nil

@@ -118,7 +118,7 @@ func runTrack(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	err = survey.AskOne(prompt, &parent, survey.WithValidator(survey.Required))
+	err = askOne(prompt, &parent, survey.WithValidator(survey.Required))
 	if err != nil {
 		// Handle ESC/Ctrl+C gracefully
 		if errors.Is(err, terminal.InterruptErr) {

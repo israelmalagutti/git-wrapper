@@ -188,7 +188,7 @@ func runCheckout(cmd *cobra.Command, args []string) error {
 			},
 		}
 
-		err = survey.AskOne(prompt, &targetBranch, survey.WithValidator(survey.Required))
+		err = askOne(prompt, &targetBranch, survey.WithValidator(survey.Required))
 		if err != nil {
 			// Handle ESC/Ctrl+C gracefully
 			if errors.Is(err, terminal.InterruptErr) {

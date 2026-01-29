@@ -73,6 +73,13 @@ func TestStack(t *testing.T) {
 		}
 	})
 
+	t.Run("GetParent returns nil for unknown branch", func(t *testing.T) {
+		s := &Stack{Nodes: map[string]*Node{}}
+		if parent := s.GetParent("missing"); parent != nil {
+			t.Errorf("expected nil parent for missing branch")
+		}
+	})
+
 	t.Run("GetChildren returns children", func(t *testing.T) {
 		parent := &Node{Name: "main", Children: []*Node{}}
 		child1 := &Node{Name: "feat-1", Parent: parent}
@@ -90,6 +97,13 @@ func TestStack(t *testing.T) {
 		children := s.GetChildren("main")
 		if len(children) != 2 {
 			t.Errorf("expected 2 children, got %d", len(children))
+		}
+	})
+
+	t.Run("GetChildren returns nil for missing branch", func(t *testing.T) {
+		s := &Stack{Nodes: map[string]*Node{}}
+		if children := s.GetChildren("missing"); children != nil {
+			t.Errorf("expected nil children for missing branch")
 		}
 	})
 
@@ -148,6 +162,9 @@ func TestStack(t *testing.T) {
 		if depth := s.GetStackDepth("feat-2"); depth != 2 {
 			t.Errorf("expected depth 2 for feat-2, got %d", depth)
 		}
+		if depth := s.GetStackDepth("missing"); depth != -1 {
+			t.Errorf("expected depth -1 for missing branch, got %d", depth)
+		}
 	})
 
 	t.Run("GetAllBranches returns all branches", func(t *testing.T) {
@@ -162,6 +179,13 @@ func TestStack(t *testing.T) {
 		branches := s.GetAllBranches()
 		if len(branches) != 3 {
 			t.Errorf("expected 3 branches, got %d", len(branches))
+		}
+	})
+
+	t.Run("SortedChildren returns nil when empty", func(t *testing.T) {
+		node := &Node{Name: "main"}
+		if children := node.SortedChildren(); children != nil {
+			t.Errorf("expected nil children when empty")
 		}
 	})
 }

@@ -1,6 +1,36 @@
+internal/git/branch_error_test.go:48:16: Error return value of `os.Chdir` is not checked (errcheck)
+	defer os.Chdir(origDir)
+	              ^
+internal/git/branch_error_test.go:125:16: Error return value of `os.Chdir` is not checked (errcheck)
+	defer os.Chdir(origDir)
+	              ^
+internal/git/branch_error_test.go:145:16: Error return value of `os.Chdir` is not checked (errcheck)
+	defer os.Chdir(origDir)
+	              ^
+cmd/git_helpers_test.go:78:26: Error return value of `repo.repo.CheckoutBranch` is not checked (errcheck)
+	repo.repo.CheckoutBranch("main")
+	                        ^
+cmd/rename_run_test.go:10:26: Error return value of `repo.repo.CheckoutBranch` is not checked (errcheck)
+	repo.repo.CheckoutBranch("feat-rename")
+	                        ^
+cmd/split_extra_test.go:13:26: Error return value of `repo.repo.CheckoutBranch` is not checked (errcheck)
+	repo.repo.CheckoutBranch("feat-split")
+	                        ^
 internal/config/config_test.go:62:13: G306: Expect WriteFile permissions to be 0600 or less (gosec)
 		if err := os.WriteFile(path, []byte("{}"), 0644); err != nil {
 		          ^
-internal/git/git_test.go:55:12: G306: Expect WriteFile permissions to be 0600 or less (gosec)
-	if err := os.WriteFile(testFile, []byte("# Test"), 0644); err != nil {
+internal/git/branch_error_test.go:25:12: G306: Expect WriteFile permissions to be 0600 or less (gosec)
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("# Test"), 0644); err != nil {
 	          ^
+internal/git/branch_extra_test.go:36:13: G204: Subprocess launched with a potential tainted input or cmd arguments (gosec)
+		if err := exec.Command(args[0], args[1:]...).Run(); err != nil {
+		          ^
+internal/git/branch_extra_test.go:42:12: G306: Expect WriteFile permissions to be 0600 or less (gosec)
+	if err := os.WriteFile(readme, []byte("# Test\n"), 0644); err != nil {
+	          ^
+cmd/cmd_test_helpers_test.go:40:13: G204: Subprocess launched with a potential tainted input or cmd arguments (gosec)
+		if err := exec.Command(args[0], args[1:]...).Run(); err != nil {
+		          ^
+cmd/sync_extra_test.go:39:13: G204: Subprocess launched with a potential tainted input or cmd arguments (gosec)
+		if err := exec.Command(args[0], args[1:]...).Run(); err != nil {
+		          ^

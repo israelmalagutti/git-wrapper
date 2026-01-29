@@ -50,6 +50,13 @@ func setupTestRepo(t *testing.T) (string, func()) {
 		os.RemoveAll(tmpDir)
 		t.Fatalf("failed to set git user.name: %v", err)
 	}
+	if err := exec.Command("git", "config", "commit.gpgsign", "false").Run(); err != nil {
+		if chdirErr := os.Chdir(origDir); chdirErr != nil {
+			t.Fatalf("failed to restore dir after git config failure: %v", chdirErr)
+		}
+		os.RemoveAll(tmpDir)
+		t.Fatalf("failed to disable git gpg signing: %v", err)
+	}
 
 	testFile := filepath.Join(tmpDir, "README.md")
 	if err := os.WriteFile(testFile, []byte("# Test"), 0644); err != nil {

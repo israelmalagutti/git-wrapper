@@ -207,7 +207,7 @@ func promptCommitActionNoMessage(hasStaged bool) (string, error) {
 	}
 
 	var selected string
-	if err := survey.AskOne(prompt, &selected); err != nil {
+	if err := askOne(prompt, &selected); err != nil {
 		return "", err
 	}
 

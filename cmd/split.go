@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -187,7 +188,7 @@ func promptSplitMode() (string, error) {
 	}
 
 	var selected string
-	if err := survey.AskOne(prompt, &selected); err != nil {
+	if err := askOne(prompt, &selected); err != nil {
 		if errors.Is(err, terminal.InterruptErr) {
 			return "", fmt.Errorf("cancelled")
 		}
@@ -207,7 +208,7 @@ func promptBranchName(currentBranch string) (string, error) {
 	}
 
 	var name string
-	if err := survey.AskOne(prompt, &name); err != nil {
+	if err := askOne(prompt, &name); err != nil {
 		if errors.Is(err, terminal.InterruptErr) {
 			return "", fmt.Errorf("cancelled")
 		}
@@ -236,7 +237,7 @@ func splitByCommitMode(repo *git.Repo, cfg *config.Config, metadata *config.Meta
 	}
 
 	var selected []string
-	if err := survey.AskOne(prompt, &selected); err != nil {
+	if err := askOne(prompt, &selected); err != nil {
 		if errors.Is(err, terminal.InterruptErr) {
 			return fmt.Errorf("cancelled")
 		}
@@ -326,7 +327,11 @@ func splitByHunkMode(repo *git.Repo, cfg *config.Config, metadata *config.Metada
 	// Interactive staging
 	fmt.Println("\nSelect changes for the NEW PARENT branch:")
 	fmt.Println("(y=stage, n=skip, s=split, q=quit staging)")
-	if _, err := repo.RunGitCommand("add", "--patch"); err != nil {
+	if os.Getenv("GW_TEST_AUTO_STAGE") != "" {
+		if _, err := repo.RunGitCommand("add", "-A"); err != nil {
+			return fmt.Errorf("failed to auto-stage changes: %w", err)
+		}
+	} else if _, err := repo.RunGitCommand("add", "--patch"); err != nil {
 		fmt.Printf("Interactive staging exited: %v\n", err)
 	}
 

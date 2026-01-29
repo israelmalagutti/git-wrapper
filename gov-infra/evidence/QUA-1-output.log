@@ -1,6 +1,642 @@
 Running tests...
-?   	github.com/israelmalagutti/git-wrapper	[no test files]
-?   	github.com/israelmalagutti/git-wrapper/cmd	[no test files]
+=== RUN   TestMainRuns
+gw (git-wrapper) is a fast, simple git stack management tool.
+
+It helps you work with stacked diffs (stacked PRs) efficiently,
+maintaining parent-child relationships between branches.
+
+Usage:
+  gw [command]
+
+Available Commands:
+  bottom      Jump to trunk branch
+  checkout    Switch to a branch
+  children    Show the children branches
+  commit      Create a commit on the current branch
+  completion  Generate the autocompletion script for the specified shell
+  continue    Continue after resolving conflicts
+  create      Create a new branch stacked on the current branch
+  delete      Delete a branch from the stack
+  down        Move down the stack toward trunk
+  fold        Fold current branch into its parent
+  help        Help about any command
+  info        Display information about a branch
+  init        Initialize gw in the current repository
+  log         Display a visual representation of the current stack
+  modify      Amend current branch and restack children
+  move        Rebase a branch onto a different parent
+  parent      Show the parent branch
+  rename      Rename the current branch
+  restack     Restack current branch and its children
+  split       Split current branch into multiple branches
+  stack       Manage stacks of branches
+  sync        Sync with remote and restack branches
+  top         Jump to the top of the stack
+  track       Start tracking a branch with gw
+  untrack     Stop tracking a branch with gw
+  up          Move up the stack toward leaves
+
+Flags:
+  -h, --help      help for gw
+  -v, --version   version for gw
+
+Use "gw [command] --help" for more information about a command.
+--- PASS: TestMainRuns (0.00s)
+PASS
+ok  	github.com/israelmalagutti/git-wrapper	0.002s
+=== RUN   TestCheckoutBranch
+Already on branch feat-checkout
+✓ Switched to main
+  Children: feat-checkout
+--- PASS: TestCheckoutBranch (0.02s)
+=== RUN   TestRunCheckoutInteractiveAndFlags
+✓ Switched to main
+  Children: feat-1
+✓ Switched to feat-1
+  Parent: main
+  Children: feat-2
+✓ Switched to feat-2
+  Parent: feat-1
+✓ Switched to untracked
+This branch is not tracked by gw
+✓ Switched to main
+  Children: feat-1
+--- PASS: TestRunCheckoutInteractiveAndFlags (0.09s)
+=== RUN   TestRunCheckoutNoBranchesMatch
+--- PASS: TestRunCheckoutNoBranchesMatch (0.02s)
+=== RUN   TestRunCheckoutCancelled
+Cancelled.
+--- PASS: TestRunCheckoutCancelled (0.02s)
+=== RUN   TestRunMove
+Moving 'feat-move' from 'main' to 'feat-target'...
+Rebasing onto 'feat-target'...
+✓ Rebased successfully
+
+✓ Moved 'feat-move' onto 'feat-target'
+--- PASS: TestRunMove (0.04s)
+=== RUN   TestRunFold
+Checking out 'main'...
+Merging 'feat-fold' into 'main'...
+✓ Merged and committed
+
+Deleting branch 'feat-fold'...
+✓ Deleted branch 'feat-fold'
+
+✓ Folded 'feat-fold' into 'main'
+--- PASS: TestRunFold (0.03s)
+=== RUN   TestRunStackRestack
+feat-restack does not need to be restacked on main.
+--- PASS: TestRunStackRestack (0.02s)
+=== RUN   TestRunNavigationCommands
+Switched to main
+Switched to feat-2
+→ feat-1
+→ feat-2
+--- PASS: TestRunNavigationCommands (0.05s)
+=== RUN   TestRunInfoLogParentChildren
+main
+Children of 'main':
+  feat-info
+◉ feat-info (current)
+│
+○ main
+Branch: feat-info
+Type: Tracked branch
+Commit: b352f01
+Message: Initial commit
+Parent: main
+Children: None
+Stack depth: 1
+Path: main → feat-info
+--- PASS: TestRunInfoLogParentChildren (0.04s)
+=== RUN   TestRunCheckoutAndRename
+Already on branch feat-check
+✓ Renamed feat-check to feat-renamed
+--- PASS: TestRunCheckoutAndRename (0.03s)
+=== RUN   TestRunCreateCommitModifyDeleteUntrack
+✓ Created feat-create from main
+
+Next steps:
+  Make your changes, then:
+  - gw modify -m "message"  to commit
+  - gw log                   to see your stack
+
+No changes.
+On branch feat-create (f9684bf)
+
+Staging all changes...
+Creating commit...
+✓ Created commit
+✓ Created feat-untrack from feat-create
+
+Next steps:
+  Make your changes, then:
+  - gw modify -m "message"  to commit
+  - gw log                   to see your stack
+✓ Untracked feat-untrack
+
+Deleting branch 'feat-create'...
+✓ Deleted branch 'feat-create'
+--- PASS: TestRunCreateCommitModifyDeleteUntrack (0.07s)
+=== RUN   TestDoCommitAndPromptAction
+--- PASS: TestDoCommitAndPromptAction (0.02s)
+=== RUN   TestRunCommitPaths
+✓ Committed changes
+✓ Committed all changes
+
+No changes.
+On branch main (a330e15)
+
+
+No changes.
+On branch main (a330e15)
+
+✓ Committed all changes
+Cancelled.
+✓ Committed staged changes
+✓ Committed selected changes
+Cancelled.
+✓ Committed changes
+--- PASS: TestRunCommitPaths (0.09s)
+=== RUN   TestContinueHelpers
+No rebase in progress.
+✓ feat-child already up to date
+✓ Restacked feat-child onto main
+--- PASS: TestContinueHelpers (0.03s)
+=== RUN   TestRunContinueSuccess
+Continuing rebase...
+✓ Rebased feat-continue
+
+✓ All done!
+--- PASS: TestRunContinueSuccess (0.04s)
+=== RUN   TestContinueRestackChildrenPaths
+✓ Restacked feat-child-behind onto feat-parent
+✓ Restacked feat-grandchild onto feat-child-behind
+✓ feat-child-up already up to date
+--- PASS: TestContinueRestackChildrenPaths (0.06s)
+=== RUN   TestRunContinueRebaseContinueFailure
+Continuing rebase...
+--- PASS: TestRunContinueRebaseContinueFailure (0.02s)
+=== RUN   TestChildNeedsRebaseError
+--- PASS: TestChildNeedsRebaseError (0.01s)
+=== RUN   TestBranchNameHelpers
+=== RUN   TestBranchNameHelpers/sanitizeBranchName_normalizes_input
+=== RUN   TestBranchNameHelpers/generateBranchName_trims_and_truncates
+=== RUN   TestBranchNameHelpers/resolveBranchName_prefers_args
+--- PASS: TestBranchNameHelpers (0.00s)
+    --- PASS: TestBranchNameHelpers/sanitizeBranchName_normalizes_input (0.00s)
+    --- PASS: TestBranchNameHelpers/generateBranchName_trims_and_truncates (0.00s)
+    --- PASS: TestBranchNameHelpers/resolveBranchName_prefers_args (0.00s)
+=== RUN   TestChangeDetectionHelpers
+=== RUN   TestChangeDetectionHelpers/detects_staged_and_unstaged_changes
+=== RUN   TestChangeDetectionHelpers/getUntrackedFiles_returns_list
+--- PASS: TestChangeDetectionHelpers (0.02s)
+    --- PASS: TestChangeDetectionHelpers/detects_staged_and_unstaged_changes (0.01s)
+    --- PASS: TestChangeDetectionHelpers/getUntrackedFiles_returns_list (0.00s)
+=== RUN   TestCommitHelpers
+--- PASS: TestCommitHelpers (0.02s)
+=== RUN   TestRunCreateMessageGeneratedBranch
+✓ Created add-login-flow from main
+No changes to commit; created branch with no commit.
+--- PASS: TestRunCreateMessageGeneratedBranch (0.02s)
+=== RUN   TestRunCreateMessagePatchPath
+✓ Created feat-create-patch-msg from main
+✓ Committed selected changes
+--- PASS: TestRunCreateMessagePatchPath (0.03s)
+=== RUN   TestRunCreateNoMessageActions
+✓ Created feat-create-all-msg from main
+✓ Committed all changes
+✓ Created feat-create-patch2 from feat-create-all-msg
+✓ Committed selected changes
+✓ Created feat-create-nocommit2 from feat-create-patch2
+Created branch with no commit.
+--- PASS: TestRunCreateNoMessageActions (0.05s)
+=== RUN   TestRunCreatePaths
+✓ Created feat-create-staged from main
+✓ Committed changes
+✓ Created feat-create-unstaged from feat-create-staged
+✓ Committed all changes
+✓ Created feat-create-nocommit from feat-create-unstaged
+Created branch with no commit.
+✓ Created feat-create-abort from feat-create-nocommit
+Aborted.
+✓ Created feat-create-staged2 from feat-create-nocommit
+✓ Committed staged changes
+✓ Created feat-create-abort2 from feat-create-staged2
+Aborted.
+✓ Created feat-create-all from feat-create-staged2
+✓ Committed changes
+✓ Created feat-create-clean from feat-create-all
+
+Next steps:
+  Make your changes, then:
+  - gw modify -m "message"  to commit
+  - gw log                   to see your stack
+✓ Created feature-branch from feat-create-clean
+
+Next steps:
+  Make your changes, then:
+  - gw modify -m "message"  to commit
+  - gw log                   to see your stack
+Cancelled.
+[0G[2K[1;92m? [0m[1;99mBranch name: [0m[?25l[?25l7[999;999f[6n8[?25h[6n[?25h✓ Created feat-create-patch from feature-branch
+✓ Committed changes
+--- PASS: TestRunCreatePaths (0.14s)
+=== RUN   TestRunDeleteWithChildren
+Checking out 'main'...
+
+Updating 1 child branch(es)...
+  ✓ Updated 'feat-child' parent to 'main'
+
+Deleting branch 'feat-parent'...
+✓ Deleted branch 'feat-parent'
+
+Restacking children...
+feat-child does not need to be restacked on main.
+✓ Children restacked
+--- PASS: TestRunDeleteWithChildren (0.04s)
+=== RUN   TestRunDeleteInteractiveCancel
+Delete cancelled
+--- PASS: TestRunDeleteInteractiveCancel (0.03s)
+=== RUN   TestRunDeleteErrors
+--- PASS: TestRunDeleteErrors (0.03s)
+=== RUN   TestRunFoldTrunkAndUntrackedErrors
+--- PASS: TestRunFoldTrunkAndUntrackedErrors (0.02s)
+=== RUN   TestRunFoldDeleteBranch
+Checking out 'main'...
+Merging 'feat-fold-delete' into 'main'...
+✓ Merged and committed
+
+Updating 1 child branch(es)...
+  ✓ Updated 'feat-fold-child' parent to 'main'
+
+Deleting branch 'feat-fold-delete'...
+✓ Deleted branch 'feat-fold-delete'
+
+Restacking children...
+Restacked feat-fold-child on main.
+✓ Children restacked
+
+✓ Folded 'feat-fold-delete' into 'main'
+--- PASS: TestRunFoldDeleteBranch (0.05s)
+=== RUN   TestRunFoldKeepBranch
+Checking out 'main'...
+Merging 'feat-fold' into 'main'...
+✓ Merged and committed
+✓ Kept branch 'feat-fold'
+
+Restacking children...
+Restacked feat-fold on main.
+✓ Children restacked
+
+✓ Folded 'feat-fold' into 'main'
+--- PASS: TestRunFoldKeepBranch (0.04s)
+=== RUN   TestRunFoldCancel
+Fold cancelled
+--- PASS: TestRunFoldCancel (0.02s)
+=== RUN   TestBranchHasCommits
+--- PASS: TestBranchHasCommits (0.02s)
+=== RUN   TestHasUnstagedChanges
+--- PASS: TestHasUnstagedChanges (0.02s)
+=== RUN   TestCountCommits
+--- PASS: TestCountCommits (0.02s)
+=== RUN   TestNeedsRebase
+--- PASS: TestNeedsRebase (0.02s)
+=== RUN   TestConfirmHelpers
+--- PASS: TestConfirmHelpers (0.00s)
+=== RUN   TestRunInfoUntrackedAndMissing
+Branch: untracked-info
+Status: Not tracked by gw
+
+Run 'gw track untracked-info' to start tracking this branch
+--- PASS: TestRunInfoUntrackedAndMissing (0.02s)
+=== RUN   TestRunInitAlreadyInitialized
+--- PASS: TestRunInitAlreadyInitialized (0.01s)
+=== RUN   TestRunInitCancelled
+Cancelled.
+--- PASS: TestRunInitCancelled (0.01s)
+=== RUN   TestRunLogLong
+◉ main (current) · 0 seconds ago
+│ 1563b42 - Initial commit
+│
+--- PASS: TestRunLogLong (0.02s)
+=== RUN   TestRunModifyPatchWithChild
+Interactively staging changes...
+Creating commit...
+✓ Created commit
+
+Restacking children...
+Restacked feat-mod-child on feat-mod.
+✓ Children restacked
+--- PASS: TestRunModifyPatchWithChild (0.05s)
+=== RUN   TestRunModifyUnstagedError
+Branch has no commits, creating new commit...
+Creating commit...
+--- PASS: TestRunModifyUnstagedError (0.02s)
+=== RUN   TestRunModifyPaths
+Branch has no commits, creating new commit...
+Staging all changes...
+Creating commit...
+✓ Created commit
+⚠ You have unstaged changes.
+Use -a to stage all, or -p to stage interactively.
+Amending commit...
+✓ Amended commit
+--- PASS: TestRunModifyPaths (0.05s)
+=== RUN   TestRunMoveErrorsAndInteractive
+Moving 'feat-parent' from 'main' to 'main'...
+Rebasing onto 'main'...
+✓ Rebased successfully
+
+Restacking children...
+feat-child does not need to be restacked on feat-parent.
+✓ Children restacked
+
+✓ Moved 'feat-parent' onto 'main'
+--- PASS: TestRunMoveErrorsAndInteractive (0.07s)
+=== RUN   TestRunMoveSuccessWithChildren
+Moving 'feat-child' from 'feat-parent' to 'main'...
+Rebasing onto 'main'...
+✓ Rebased successfully
+
+Restacking children...
+feat-grandchild does not need to be restacked on feat-child.
+✓ Children restacked
+
+✓ Moved 'feat-child' onto 'main'
+--- PASS: TestRunMoveSuccessWithChildren (0.06s)
+=== RUN   TestRunBottomAndDownPaths
+Already at trunk
+Switched to main
+→ Reached trunk after 1 step(s)
+→ main
+--- PASS: TestRunBottomAndDownPaths (0.04s)
+=== RUN   TestRunBottomDetachedHeadError
+--- PASS: TestRunBottomDetachedHeadError (0.02s)
+=== RUN   TestRunParentAndChildrenPaths
+feat-parent
+Children of 'feat-parent':
+  feat-child
+Branch 'feat-child' has no children
+--- PASS: TestRunParentAndChildrenPaths (0.03s)
+=== RUN   TestRunInitAndTrackWithPrompts
+✓ Initialized gw with trunk branch: main
+  Config: .git/.gw_config
+  Metadata: .git/.gw_stack_metadata
+
+You can now use 'gw track' to start tracking existing branches
+or 'gw create' to create new branches in your stack
+✓ Tracking feat-track with parent main
+--- PASS: TestRunInitAndTrackWithPrompts (0.02s)
+=== RUN   TestPromptHelpers
+--- PASS: TestPromptHelpers (0.04s)
+=== RUN   TestRunRenamePaths
+feat-rename is already named feat-rename
+✓ Renamed feat-rename to feat-renamed
+--- PASS: TestRunRenamePaths (0.03s)
+=== RUN   TestRestackAllBranchesConflict
+  Rebasing feat-conflict onto main... ✗ conflict
+--- PASS: TestRestackAllBranchesConflict (0.03s)
+=== RUN   TestRestackBranchSuccess
+Restacked feat-rebase on main.
+--- PASS: TestRestackBranchSuccess (0.02s)
+=== RUN   TestRestackBranchConflict
+
+Hit conflict restacking feat-conflict on main.
+
+To fix and continue:
+  (1) resolve the merge conflicts
+  (2) stage changes with: git add .
+  (3) continue rebase: git rebase --continue
+  (4) restack remaining: gw stack restack
+
+To abort: git rebase --abort
+--- PASS: TestRestackBranchConflict (0.03s)
+=== RUN   TestRestackChildren
+feat-child does not need to be restacked on main.
+feat-grandchild does not need to be restacked on feat-child.
+--- PASS: TestRestackChildren (0.03s)
+=== RUN   TestGetVersionInfo
+--- PASS: TestGetVersionInfo (0.00s)
+=== RUN   TestExecuteDoesNotError
+gw (git-wrapper) is a fast, simple git stack management tool.
+
+It helps you work with stacked diffs (stacked PRs) efficiently,
+maintaining parent-child relationships between branches.
+
+Usage:
+  gw [command]
+
+Available Commands:
+  bottom      Jump to trunk branch
+  checkout    Switch to a branch
+  children    Show the children branches
+  commit      Create a commit on the current branch
+  completion  Generate the autocompletion script for the specified shell
+  continue    Continue after resolving conflicts
+  create      Create a new branch stacked on the current branch
+  delete      Delete a branch from the stack
+  down        Move down the stack toward trunk
+  fold        Fold current branch into its parent
+  help        Help about any command
+  info        Display information about a branch
+  init        Initialize gw in the current repository
+  log         Display a visual representation of the current stack
+  modify      Amend current branch and restack children
+  move        Rebase a branch onto a different parent
+  parent      Show the parent branch
+  rename      Rename the current branch
+  restack     Restack current branch and its children
+  split       Split current branch into multiple branches
+  stack       Manage stacks of branches
+  sync        Sync with remote and restack branches
+  top         Jump to the top of the stack
+  track       Start tracking a branch with gw
+  untrack     Stop tracking a branch with gw
+  up          Move up the stack toward leaves
+
+Flags:
+  -h, --help      help for gw
+  -v, --version   version for gw
+
+Use "gw [command] --help" for more information about a command.
+--- PASS: TestExecuteDoesNotError (0.00s)
+=== RUN   TestRunSplitErrors
+--- PASS: TestRunSplitErrors (0.04s)
+=== RUN   TestSplitByCommitMode
+
+Splitting at commit 9c41a24...
+Rebasing 'feat-split' onto 'feat-parent'...
+
+✓ Created 'feat-parent' with 1 commit(s)
+✓ 'feat-split' now has 1 commit(s) on top of 'feat-parent'
+--- PASS: TestSplitByCommitMode (0.03s)
+=== RUN   TestSplitPromptHelpers
+--- PASS: TestSplitPromptHelpers (0.00s)
+=== RUN   TestSplitByFileModeNoMatch
+Creating 'feat-split-base' from 'main'...
+Adding files matching 'nope*.txt'...
+--- PASS: TestSplitByFileModeNoMatch (0.02s)
+=== RUN   TestSplitByCommitModeSelectionErrors
+--- PASS: TestSplitByCommitModeSelectionErrors (0.03s)
+=== RUN   TestPromptBranchNameCancelled
+--- PASS: TestPromptBranchNameCancelled (0.00s)
+=== RUN   TestPromptSplitModeCancelled
+--- PASS: TestPromptSplitModeCancelled (0.00s)
+=== RUN   TestSplitByHunkModeNoChanges
+Creating 'feat-split-base' from 'main'...
+Preparing changes for interactive staging...
+
+Select changes for the NEW PARENT branch:
+(y=stage, n=skip, s=split, q=quit staging)
+No changes staged, aborting split...
+--- PASS: TestSplitByHunkModeNoChanges (0.03s)
+=== RUN   TestRunSplitCommitMode
+
+Splitting at commit 9c41a24...
+Rebasing 'feat-split-run' onto 'feat-base'...
+
+✓ Created 'feat-base' with 1 commit(s)
+✓ 'feat-split-run' now has 1 commit(s) on top of 'feat-base'
+--- PASS: TestRunSplitCommitMode (0.03s)
+=== RUN   TestRunSplitHunkMode
+Creating 'feat-hunk-base' from 'main'...
+Preparing changes for interactive staging...
+
+Select changes for the NEW PARENT branch:
+(y=stage, n=skip, s=split, q=quit staging)
+
+Rebasing 'feat-split-hunk' onto 'feat-hunk-base'...
+
+✓ Created 'feat-hunk-base' as new parent
+✓ 'feat-split-hunk' rebased on top
+--- PASS: TestRunSplitHunkMode (0.04s)
+=== RUN   TestRunSplitFileMode
+Creating 'feat-file-base' from 'main'...
+Adding files matching 'file.txt'...
+
+Rebasing 'feat-split-file' onto 'feat-file-base'...
+
+✓ Created 'feat-file-base' with files matching: file.txt
+✓ 'feat-split-file' rebased on top
+--- PASS: TestRunSplitFileMode (0.04s)
+=== RUN   TestRunSplitDefaultHunk
+Single commit detected, using hunk mode...
+Creating 'feat-default-base' from 'main'...
+Preparing changes for interactive staging...
+
+Select changes for the NEW PARENT branch:
+(y=stage, n=skip, s=split, q=quit staging)
+
+Rebasing 'feat-split-default' onto 'feat-default-base'...
+
+✓ Created 'feat-default-base' as new parent
+✓ 'feat-split-default' rebased on top
+--- PASS: TestRunSplitDefaultHunk (0.04s)
+=== RUN   TestIsDescendant
+--- PASS: TestIsDescendant (0.00s)
+=== RUN   TestIsInDescendants
+--- PASS: TestIsInDescendants (0.00s)
+=== RUN   TestFindLeaves
+--- PASS: TestFindLeaves (0.00s)
+=== RUN   TestRunStackRestackTrunkAndUntracked
+No branches to restack from trunk.
+--- PASS: TestRunStackRestackTrunkAndUntracked (0.03s)
+=== RUN   TestRunStackRestackBranchWithChild
+feat-restack does not need to be restacked on main.
+feat-restack-child does not need to be restacked on feat-restack.
+--- PASS: TestRunStackRestackBranchWithChild (0.04s)
+=== RUN   TestSyncConfirmHelpers
+--- PASS: TestSyncConfirmHelpers (0.00s)
+=== RUN   TestSyncConfirmWithOptions
+--- PASS: TestSyncConfirmWithOptions (0.00s)
+=== RUN   TestDeleteMergedBranchesPromptAll
+
+Found 2 branch(es) merged into main:
+  - feat-merged-1
+  - feat-merged-2
+
+Delete 'feat-merged-1'? [y/n/a(ll)/q(uit)]:   ✓ Deleted feat-merged-1
+  ✓ Deleted feat-merged-2
+--- PASS: TestDeleteMergedBranchesPromptAll (0.04s)
+=== RUN   TestSyncHelpers
+✓ main is up to date with origin/main
+✓ Fast-forwarded main to origin/main
+
+Found 1 stale branch(es) in metadata:
+  - stale-branch (deleted from git)
+✓ Removed 1 stale branch(es) from metadata
+
+Found 1 branch(es) merged into main:
+  - feat-merged
+
+  ✓ Deleted feat-merged
+--- PASS: TestSyncHelpers (0.07s)
+=== RUN   TestSyncTrunkWithRemoteConfirmSkip
+Cannot fast-forward main (local has diverged).
+Reset main to origin/main? [y/N]: Skipped trunk sync.
+--- PASS: TestSyncTrunkWithRemoteConfirmSkip (0.06s)
+=== RUN   TestDeleteBranchAndCleanup
+--- PASS: TestDeleteBranchAndCleanup (0.02s)
+=== RUN   TestRestackAllBranchesNoop
+--- PASS: TestRestackAllBranchesNoop (0.02s)
+=== RUN   TestRunSyncRestack
+Fetching from remote...
+✓ Fetched from origin
+
+Syncing trunk (main)...
+✓ Reset main to origin/main
+
+Restacking branches...
+✓ All branches are up to date
+
+Sync complete.
+--- PASS: TestRunSyncRestack (0.07s)
+=== RUN   TestRunSync
+Fetching from remote...
+✓ Fetched from origin
+
+Syncing trunk (main)...
+✓ main is up to date with origin/main
+
+Sync complete.
+--- PASS: TestRunSync (0.05s)
+=== RUN   TestRunTopPaths
+Switched to feat-a
+--- PASS: TestRunTopPaths (0.04s)
+=== RUN   TestRunTopCancelled
+Cancelled.
+--- PASS: TestRunTopCancelled (0.03s)
+=== RUN   TestRunTrackPaths
+✓ Tracking feat-track with parent main
+--- PASS: TestRunTrackPaths (0.02s)
+=== RUN   TestRunTrackErrorsAndCancel
+Cancelled.
+--- PASS: TestRunTrackErrorsAndCancel (0.03s)
+=== RUN   TestRunUntrackErrorsAndCancel
+untracked-untrack is not tracked by gw
+feat-parent has 1 children that will be reparented to main:
+  • feat-child
+
+Cancelled.
+--- PASS: TestRunUntrackErrorsAndCancel (0.03s)
+=== RUN   TestRunUntrackConfirmCancel
+feat-parent has 1 children that will be reparented to main:
+  • feat-child
+
+Cancelled.
+--- PASS: TestRunUntrackConfirmCancel (0.02s)
+=== RUN   TestRunUntrackErrors
+missing is not tracked by gw
+--- PASS: TestRunUntrackErrors (0.02s)
+=== RUN   TestRunUpErrorsAndPrompt
+→ feat-a
+--- PASS: TestRunUpErrorsAndPrompt (0.04s)
+=== RUN   TestRunUpCancelled
+Cancelled.
+--- PASS: TestRunUpCancelled (0.03s)
+PASS
+ok  	github.com/israelmalagutti/git-wrapper/cmd	2.815s
 === RUN   TestColorConstants
 === RUN   TestColorConstants/reset_code_is_correct
 === RUN   TestColorConstants/standard_colors_use_30-37_range
@@ -59,8 +695,24 @@ Running tests...
     --- PASS: TestTreeChars/ASCIITreeChars_has_ASCII_characters (0.00s)
 === RUN   TestIsEnabled
 --- PASS: TestIsEnabled (0.00s)
+=== RUN   TestAdditionalFormatting
+--- PASS: TestAdditionalFormatting (0.00s)
+=== RUN   TestApplyHelpers
+--- PASS: TestApplyHelpers (0.00s)
+=== RUN   TestSplogOutput
+--- PASS: TestSplogOutput (0.00s)
+=== RUN   TestSplogQuietMode
+--- PASS: TestSplogQuietMode (0.00s)
 PASS
-ok  	github.com/israelmalagutti/git-wrapper/internal/colors	(cached)
+ok  	github.com/israelmalagutti/git-wrapper/internal/colors	0.002s
+=== RUN   TestLoadConfigErrors
+--- PASS: TestLoadConfigErrors (0.00s)
+=== RUN   TestSaveConfigError
+--- PASS: TestSaveConfigError (0.00s)
+=== RUN   TestMetadataUpdateParentErrors
+--- PASS: TestMetadataUpdateParentErrors (0.00s)
+=== RUN   TestMetadataLoadSaveErrors
+--- PASS: TestMetadataLoadSaveErrors (0.00s)
 === RUN   TestConfig
 === RUN   TestConfig/Load_returns_error_if_not_exists
 === RUN   TestConfig/NewConfig_creates_config_with_trunk
@@ -92,63 +744,83 @@ ok  	github.com/israelmalagutti/git-wrapper/internal/colors	(cached)
     --- PASS: TestMetadata/saves_and_loads_metadata (0.00s)
     --- PASS: TestMetadata/GetParent_returns_false_for_untracked (0.00s)
 PASS
-ok  	github.com/israelmalagutti/git-wrapper/internal/config	(cached)
+ok  	github.com/israelmalagutti/git-wrapper/internal/config	0.001s
+=== RUN   TestBranchErrorPaths
+--- PASS: TestBranchErrorPaths (0.02s)
+=== RUN   TestNewRepoOutsideGit
+--- PASS: TestNewRepoOutsideGit (0.00s)
+=== RUN   TestEmptyRepoBranches
+--- PASS: TestEmptyRepoBranches (0.01s)
+=== RUN   TestFetchOutsideRepo
+--- PASS: TestFetchOutsideRepo (0.01s)
+=== RUN   TestResetToRemoteMissingBranch
+--- PASS: TestResetToRemoteMissingBranch (0.01s)
+=== RUN   TestRemoteOperations
+--- PASS: TestRemoteOperations (0.08s)
 === RUN   TestIsGitRepo
 === RUN   TestIsGitRepo/returns_true_in_git_repo
 --- PASS: TestIsGitRepo (0.01s)
     --- PASS: TestIsGitRepo/returns_true_in_git_repo (0.00s)
 === RUN   TestNewRepo
 === RUN   TestNewRepo/creates_repo_instance
---- PASS: TestNewRepo (0.02s)
+--- PASS: TestNewRepo (0.01s)
     --- PASS: TestNewRepo/creates_repo_instance (0.00s)
 === RUN   TestGetCurrentBranch
 === RUN   TestGetCurrentBranch/returns_current_branch
---- PASS: TestGetCurrentBranch (0.02s)
+--- PASS: TestGetCurrentBranch (0.01s)
     --- PASS: TestGetCurrentBranch/returns_current_branch (0.00s)
 === RUN   TestListBranches
 === RUN   TestListBranches/lists_all_branches
---- PASS: TestListBranches (0.02s)
+--- PASS: TestListBranches (0.01s)
     --- PASS: TestListBranches/lists_all_branches (0.00s)
 === RUN   TestBranchExists
 === RUN   TestBranchExists/returns_true_for_existing_branch
 === RUN   TestBranchExists/returns_false_for_non-existing_branch
---- PASS: TestBranchExists (0.02s)
+--- PASS: TestBranchExists (0.01s)
     --- PASS: TestBranchExists/returns_true_for_existing_branch (0.00s)
     --- PASS: TestBranchExists/returns_false_for_non-existing_branch (0.00s)
 === RUN   TestCreateBranch
 === RUN   TestCreateBranch/creates_new_branch
---- PASS: TestCreateBranch (0.02s)
+--- PASS: TestCreateBranch (0.01s)
     --- PASS: TestCreateBranch/creates_new_branch (0.00s)
 === RUN   TestCheckoutBranch
 === RUN   TestCheckoutBranch/switches_to_branch
 === RUN   TestCheckoutBranch/fails_for_non-existing_branch
---- PASS: TestCheckoutBranch (0.02s)
+--- PASS: TestCheckoutBranch (0.01s)
     --- PASS: TestCheckoutBranch/switches_to_branch (0.00s)
     --- PASS: TestCheckoutBranch/fails_for_non-existing_branch (0.00s)
 === RUN   TestDeleteBranch
 === RUN   TestDeleteBranch/deletes_branch
---- PASS: TestDeleteBranch (0.02s)
+--- PASS: TestDeleteBranch (0.01s)
     --- PASS: TestDeleteBranch/deletes_branch (0.00s)
 === RUN   TestGetBranchCommit
 === RUN   TestGetBranchCommit/returns_commit_SHA
---- PASS: TestGetBranchCommit (0.02s)
+--- PASS: TestGetBranchCommit (0.01s)
     --- PASS: TestGetBranchCommit/returns_commit_SHA (0.00s)
 === RUN   TestRunGitCommand
 === RUN   TestRunGitCommand/runs_git_command_successfully
 === RUN   TestRunGitCommand/returns_error_for_invalid_command
---- PASS: TestRunGitCommand (0.02s)
+--- PASS: TestRunGitCommand (0.01s)
     --- PASS: TestRunGitCommand/runs_git_command_successfully (0.00s)
     --- PASS: TestRunGitCommand/returns_error_for_invalid_command (0.00s)
 === RUN   TestGetConfigPath
 === RUN   TestGetConfigPath/returns_config_path
---- PASS: TestGetConfigPath (0.02s)
+--- PASS: TestGetConfigPath (0.01s)
     --- PASS: TestGetConfigPath/returns_config_path (0.00s)
 === RUN   TestGetMetadataPath
 === RUN   TestGetMetadataPath/returns_metadata_path
---- PASS: TestGetMetadataPath (0.02s)
+--- PASS: TestGetMetadataPath (0.01s)
     --- PASS: TestGetMetadataPath/returns_metadata_path (0.00s)
 PASS
-ok  	github.com/israelmalagutti/git-wrapper/internal/git	(cached)
+ok  	github.com/israelmalagutti/git-wrapper/internal/git	0.276s
+=== RUN   TestBuildStack
+--- PASS: TestBuildStack (0.01s)
+=== RUN   TestBuildStackMissingTrunk
+--- PASS: TestBuildStackMissingTrunk (0.01s)
+=== RUN   TestBuildStackSkipsMissingBranch
+--- PASS: TestBuildStackSkipsMissingBranch (0.01s)
+=== RUN   TestGetTopologicalOrder
+--- PASS: TestGetTopologicalOrder (0.00s)
 === RUN   TestNode
 === RUN   TestNode/node_structure
 --- PASS: TestNode (0.00s)
@@ -157,18 +829,24 @@ ok  	github.com/israelmalagutti/git-wrapper/internal/git	(cached)
 === RUN   TestStack/GetNode_returns_node
 === RUN   TestStack/GetNode_returns_nil_for_unknown
 === RUN   TestStack/GetParent_returns_parent_node
+=== RUN   TestStack/GetParent_returns_nil_for_unknown_branch
 === RUN   TestStack/GetChildren_returns_children
+=== RUN   TestStack/GetChildren_returns_nil_for_missing_branch
 === RUN   TestStack/FindPath_returns_path_from_trunk
 === RUN   TestStack/GetStackDepth_returns_correct_depth
 === RUN   TestStack/GetAllBranches_returns_all_branches
+=== RUN   TestStack/SortedChildren_returns_nil_when_empty
 --- PASS: TestStack (0.00s)
     --- PASS: TestStack/GetNode_returns_node (0.00s)
     --- PASS: TestStack/GetNode_returns_nil_for_unknown (0.00s)
     --- PASS: TestStack/GetParent_returns_parent_node (0.00s)
+    --- PASS: TestStack/GetParent_returns_nil_for_unknown_branch (0.00s)
     --- PASS: TestStack/GetChildren_returns_children (0.00s)
+    --- PASS: TestStack/GetChildren_returns_nil_for_missing_branch (0.00s)
     --- PASS: TestStack/FindPath_returns_path_from_trunk (0.00s)
     --- PASS: TestStack/GetStackDepth_returns_correct_depth (0.00s)
     --- PASS: TestStack/GetAllBranches_returns_all_branches (0.00s)
+    --- PASS: TestStack/SortedChildren_returns_nil_when_empty (0.00s)
 === RUN   TestValidateStack
 === RUN   TestValidateStack/valid_stack_passes
 === RUN   TestValidateStack/detects_cycle
@@ -179,5 +857,15 @@ ok  	github.com/israelmalagutti/git-wrapper/internal/git	(cached)
 === RUN   TestBuildStackMetadata/builds_parent-child_relationships_from_metadata
 --- PASS: TestBuildStackMetadata (0.00s)
     --- PASS: TestBuildStackMetadata/builds_parent-child_relationships_from_metadata (0.00s)
+=== RUN   TestRenderShortWithRepoAndEmptyMessages
+--- PASS: TestRenderShortWithRepoAndEmptyMessages (0.05s)
+=== RUN   TestRenderShortAndPath
+--- PASS: TestRenderShortAndPath (0.00s)
+=== RUN   TestRenderTreeNilRepo
+--- PASS: TestRenderTreeNilRepo (0.00s)
+=== RUN   TestCommitHelpersWithRepo
+--- PASS: TestCommitHelpersWithRepo (0.03s)
+=== RUN   TestSortChildrenByTime
+--- PASS: TestSortChildrenByTime (1.03s)
 PASS
-ok  	github.com/israelmalagutti/git-wrapper/internal/stack	(cached)
+ok  	github.com/israelmalagutti/git-wrapper/internal/stack	1.144s
