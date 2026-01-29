@@ -1,0 +1,2 @@
+MAI-4: FAIL (CI configuration detected, but no job runs gov-verify-rubric.sh)
+Ensure CI runs: bash gov-infra/verifiers/gov-verify-rubric.sh

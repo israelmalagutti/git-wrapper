@@ -1,0 +1,171 @@
+Running tests...
+# github.com/israelmalagutti/git-wrapper
+open /home/israelmalagutti/.cache/go-build/0b/0b94bd539150ac8fe30895259db8be500019a400c49fd0b8500dbcbd0a975da2-a: permission denied
+FAIL	github.com/israelmalagutti/git-wrapper [setup failed]
+# ./...
+pattern ./...: open /home/israelmalagutti/.cache/go-build/91/914cf685714f97a397a4938be8bfc820cab97c15bedeec505431cb7703b5b535-a: permission denied
+FAIL	./... [setup failed]
+=== RUN   TestColorConstants
+=== RUN   TestColorConstants/reset_code_is_correct
+=== RUN   TestColorConstants/standard_colors_use_30-37_range
+=== RUN   TestColorConstants/bright_colors_use_90-97_range
+--- PASS: TestColorConstants (0.00s)
+    --- PASS: TestColorConstants/reset_code_is_correct (0.00s)
+    --- PASS: TestColorConstants/standard_colors_use_30-37_range (0.00s)
+    --- PASS: TestColorConstants/bright_colors_use_90-97_range (0.00s)
+=== RUN   TestSemanticColors
+=== RUN   TestSemanticColors/Success_wraps_with_green
+=== RUN   TestSemanticColors/Error_wraps_with_bright_red
+=== RUN   TestSemanticColors/Warning_wraps_with_yellow
+=== RUN   TestSemanticColors/Info_wraps_with_cyan
+=== RUN   TestSemanticColors/Muted_wraps_with_bright_black
+--- PASS: TestSemanticColors (0.00s)
+    --- PASS: TestSemanticColors/Success_wraps_with_green (0.00s)
+    --- PASS: TestSemanticColors/Error_wraps_with_bright_red (0.00s)
+    --- PASS: TestSemanticColors/Warning_wraps_with_yellow (0.00s)
+    --- PASS: TestSemanticColors/Info_wraps_with_cyan (0.00s)
+    --- PASS: TestSemanticColors/Muted_wraps_with_bright_black (0.00s)
+=== RUN   TestBranchColors
+=== RUN   TestBranchColors/BranchCurrent_is_green_and_bold
+=== RUN   TestBranchColors/BranchTrunk_is_blue_and_bold
+=== RUN   TestBranchColors/BranchParent_is_cyan
+=== RUN   TestBranchColors/BranchChild_is_magenta
+--- PASS: TestBranchColors (0.00s)
+    --- PASS: TestBranchColors/BranchCurrent_is_green_and_bold (0.00s)
+    --- PASS: TestBranchColors/BranchTrunk_is_blue_and_bold (0.00s)
+    --- PASS: TestBranchColors/BranchParent_is_cyan (0.00s)
+    --- PASS: TestBranchColors/BranchChild_is_magenta (0.00s)
+=== RUN   TestCyclePalette
+=== RUN   TestCyclePalette/Cycle_returns_colors_in_sequence
+=== RUN   TestCyclePalette/Cycle_wraps_around_palette
+=== RUN   TestCyclePalette/CycleText_applies_color_to_text
+--- PASS: TestCyclePalette (0.00s)
+    --- PASS: TestCyclePalette/Cycle_returns_colors_in_sequence (0.00s)
+    --- PASS: TestCyclePalette/Cycle_wraps_around_palette (0.00s)
+    --- PASS: TestCyclePalette/CycleText_applies_color_to_text (0.00s)
+=== RUN   TestColorDisabled
+=== RUN   TestColorDisabled/colors_disabled_returns_plain_text
+=== RUN   TestColorDisabled/Error_returns_plain_text_when_disabled
+=== RUN   TestColorDisabled/CycleText_returns_plain_text_when_disabled
+--- PASS: TestColorDisabled (0.00s)
+    --- PASS: TestColorDisabled/colors_disabled_returns_plain_text (0.00s)
+    --- PASS: TestColorDisabled/Error_returns_plain_text_when_disabled (0.00s)
+    --- PASS: TestColorDisabled/CycleText_returns_plain_text_when_disabled (0.00s)
+=== RUN   TestEmptyText
+=== RUN   TestEmptyText/empty_text_returns_empty
+--- PASS: TestEmptyText (0.00s)
+    --- PASS: TestEmptyText/empty_text_returns_empty (0.00s)
+=== RUN   TestTreeChars
+=== RUN   TestTreeChars/DefaultTreeChars_has_unicode_characters
+=== RUN   TestTreeChars/ASCIITreeChars_has_ASCII_characters
+--- PASS: TestTreeChars (0.00s)
+    --- PASS: TestTreeChars/DefaultTreeChars_has_unicode_characters (0.00s)
+    --- PASS: TestTreeChars/ASCIITreeChars_has_ASCII_characters (0.00s)
+=== RUN   TestIsEnabled
+--- PASS: TestIsEnabled (0.00s)
+PASS
+ok  	github.com/israelmalagutti/git-wrapper/internal/colors	0.002s
+=== RUN   TestConfig
+=== RUN   TestConfig/Load_returns_error_if_not_exists
+=== RUN   TestConfig/NewConfig_creates_config_with_trunk
+=== RUN   TestConfig/saves_and_loads_config
+=== RUN   TestConfig/IsInitialized_returns_false_for_nonexistent
+=== RUN   TestConfig/IsInitialized_returns_true_for_existing
+--- PASS: TestConfig (0.00s)
+    --- PASS: TestConfig/Load_returns_error_if_not_exists (0.00s)
+    --- PASS: TestConfig/NewConfig_creates_config_with_trunk (0.00s)
+    --- PASS: TestConfig/saves_and_loads_config (0.00s)
+    --- PASS: TestConfig/IsInitialized_returns_false_for_nonexistent (0.00s)
+    --- PASS: TestConfig/IsInitialized_returns_true_for_existing (0.00s)
+=== RUN   TestMetadata
+=== RUN   TestMetadata/creates_empty_metadata_if_not_exists
+=== RUN   TestMetadata/TrackBranch_adds_branch
+=== RUN   TestMetadata/UntrackBranch_removes_branch
+=== RUN   TestMetadata/UpdateParent_changes_parent
+=== RUN   TestMetadata/UpdateParent_fails_for_untracked
+=== RUN   TestMetadata/GetChildren_returns_child_branches
+=== RUN   TestMetadata/saves_and_loads_metadata
+=== RUN   TestMetadata/GetParent_returns_false_for_untracked
+--- PASS: TestMetadata (0.00s)
+    --- PASS: TestMetadata/creates_empty_metadata_if_not_exists (0.00s)
+    --- PASS: TestMetadata/TrackBranch_adds_branch (0.00s)
+    --- PASS: TestMetadata/UntrackBranch_removes_branch (0.00s)
+    --- PASS: TestMetadata/UpdateParent_changes_parent (0.00s)
+    --- PASS: TestMetadata/UpdateParent_fails_for_untracked (0.00s)
+    --- PASS: TestMetadata/GetChildren_returns_child_branches (0.00s)
+    --- PASS: TestMetadata/saves_and_loads_metadata (0.00s)
+    --- PASS: TestMetadata/GetParent_returns_false_for_untracked (0.00s)
+PASS
+ok  	github.com/israelmalagutti/git-wrapper/internal/config	0.002s
+=== RUN   TestIsGitRepo
+=== RUN   TestIsGitRepo/returns_true_in_git_repo
+--- PASS: TestIsGitRepo (0.01s)
+    --- PASS: TestIsGitRepo/returns_true_in_git_repo (0.00s)
+=== RUN   TestNewRepo
+=== RUN   TestNewRepo/creates_repo_instance
+--- PASS: TestNewRepo (0.02s)
+    --- PASS: TestNewRepo/creates_repo_instance (0.01s)
+=== RUN   TestGetCurrentBranch
+=== RUN   TestGetCurrentBranch/returns_current_branch
+--- PASS: TestGetCurrentBranch (0.03s)
+    --- PASS: TestGetCurrentBranch/returns_current_branch (0.00s)
+=== RUN   TestListBranches
+=== RUN   TestListBranches/lists_all_branches
+    git_test.go:115: expected 3 branches, got 0: []
+--- FAIL: TestListBranches (0.03s)
+    --- FAIL: TestListBranches/lists_all_branches (0.01s)
+=== RUN   TestBranchExists
+=== RUN   TestBranchExists/returns_true_for_existing_branch
+    git_test.go:128: expected true for 'main'
+=== RUN   TestBranchExists/returns_false_for_non-existing_branch
+--- FAIL: TestBranchExists (0.03s)
+    --- FAIL: TestBranchExists/returns_true_for_existing_branch (0.00s)
+    --- PASS: TestBranchExists/returns_false_for_non-existing_branch (0.00s)
+=== RUN   TestCreateBranch
+=== RUN   TestCreateBranch/creates_new_branch
+    git_test.go:148: CreateBranch failed: failed to create branch new-branch: git branch new-branch failed: exit status 128
+        fatal: not a valid object name: 'main'
+--- FAIL: TestCreateBranch (0.03s)
+    --- FAIL: TestCreateBranch/creates_new_branch (0.00s)
+=== RUN   TestCheckoutBranch
+=== RUN   TestCheckoutBranch/switches_to_branch
+    git_test.go:167: CheckoutBranch failed: failed to checkout branch feat-checkout: git checkout feat-checkout failed: exit status 1
+        error: pathspec 'feat-checkout' did not match any file(s) known to git
+=== RUN   TestCheckoutBranch/fails_for_non-existing_branch
+--- FAIL: TestCheckoutBranch (0.03s)
+    --- FAIL: TestCheckoutBranch/switches_to_branch (0.00s)
+    --- PASS: TestCheckoutBranch/fails_for_non-existing_branch (0.00s)
+=== RUN   TestDeleteBranch
+=== RUN   TestDeleteBranch/deletes_branch
+    git_test.go:194: DeleteBranch failed: failed to delete branch to-delete: git branch -D to-delete failed: exit status 1
+        error: branch 'to-delete' not found
+--- FAIL: TestDeleteBranch (0.02s)
+    --- FAIL: TestDeleteBranch/deletes_branch (0.00s)
+=== RUN   TestGetBranchCommit
+=== RUN   TestGetBranchCommit/returns_commit_SHA
+    git_test.go:212: GetBranchCommit failed: failed to get commit for branch main: git rev-parse main failed: exit status 128
+        fatal: ambiguous argument 'main': unknown revision or path not in the working tree.
+        Use '--' to separate paths from revisions, like this:
+        'git <command> [<revision>...] -- [<file>...]'
+        main
+--- FAIL: TestGetBranchCommit (0.02s)
+    --- FAIL: TestGetBranchCommit/returns_commit_SHA (0.00s)
+=== RUN   TestRunGitCommand
+=== RUN   TestRunGitCommand/runs_git_command_successfully
+    git_test.go:234: expected empty output, got 'A  README.md'
+=== RUN   TestRunGitCommand/returns_error_for_invalid_command
+--- FAIL: TestRunGitCommand (0.03s)
+    --- FAIL: TestRunGitCommand/runs_git_command_successfully (0.00s)
+    --- PASS: TestRunGitCommand/returns_error_for_invalid_command (0.00s)
+=== RUN   TestGetConfigPath
+=== RUN   TestGetConfigPath/returns_config_path
+--- PASS: TestGetConfigPath (0.02s)
+    --- PASS: TestGetConfigPath/returns_config_path (0.00s)
+=== RUN   TestGetMetadataPath
+=== RUN   TestGetMetadataPath/returns_metadata_path
+--- PASS: TestGetMetadataPath (0.02s)
+    --- PASS: TestGetMetadataPath/returns_metadata_path (0.00s)
+FAIL
+FAIL	github.com/israelmalagutti/git-wrapper/internal/git	0.282s
+FAIL
+make: *** [Makefile:76: test] Error 1

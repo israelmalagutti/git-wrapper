@@ -1,0 +1,14 @@
+Supply-chain allowlist: /home/israelmalagutti/dev/git-wrapper/gov-infra/planning/git-wrapper-supply-chain-allowlist.txt
+FAIL: unpinned GitHub Action detected (uses @vN; pin by commit SHA)
+/home/israelmalagutti/dev/git-wrapper/.github/workflows/release.yml:16:        uses: actions/checkout@v4
+/home/israelmalagutti/dev/git-wrapper/.github/workflows/release.yml:21:        uses: actions/setup-go@v5
+/home/israelmalagutti/dev/git-wrapper/.github/workflows/release.yml:36:        uses: softprops/action-gh-release@v1
+/home/israelmalagutti/dev/git-wrapper/.github/workflows/ci.yml:14:        uses: actions/checkout@v4
+/home/israelmalagutti/dev/git-wrapper/.github/workflows/ci.yml:17:        uses: actions/setup-go@v5
+/home/israelmalagutti/dev/git-wrapper/.github/workflows/ci.yml:31:        uses: actions/checkout@v4
+/home/israelmalagutti/dev/git-wrapper/.github/workflows/ci.yml:34:        uses: actions/setup-go@v5
+/home/israelmalagutti/dev/git-wrapper/.github/workflows/ci.yml:39:        uses: golangci/golangci-lint-action@v6
+/home/israelmalagutti/dev/git-wrapper/.github/workflows/ci.yml:56:        uses: actions/checkout@v4
+/home/israelmalagutti/dev/git-wrapper/.github/workflows/ci.yml:59:        uses: actions/setup-go@v5
+Supply-chain scan (Go): findings=0 allowlisted=0
+Python supply-chain scan: no Python dependency files detected; skipping.
