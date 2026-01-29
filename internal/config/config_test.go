@@ -59,7 +59,9 @@ func TestConfig(t *testing.T) {
 
 	t.Run("IsInitialized returns true for existing", func(t *testing.T) {
 		path := filepath.Join(tmpDir, "exists")
-		os.WriteFile(path, []byte("{}"), 0644)
+		if err := os.WriteFile(path, []byte("{}"), 0644); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
 
 		if !IsInitialized(path) {
 			t.Error("should return true for existing path")

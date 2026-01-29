@@ -330,7 +330,9 @@ func deleteBranchAndCleanup(repo *git.Repo, metadata *config.Metadata, branch st
 
 	for _, child := range children {
 		if parent != "" {
-			metadata.UpdateParent(child, parent)
+			if err := metadata.UpdateParent(child, parent); err != nil {
+				return fmt.Errorf("failed to update parent for '%s': %w", child, err)
+			}
 		}
 	}
 

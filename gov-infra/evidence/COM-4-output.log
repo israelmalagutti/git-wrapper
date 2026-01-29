@@ -1,2 +1,1 @@
-make: *** [Makefile:81: test-coverage] Error 1
-coverage=5.4%
+coverage=6.3%

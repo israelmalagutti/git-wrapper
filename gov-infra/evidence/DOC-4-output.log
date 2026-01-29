@@ -1,2 +1,3 @@
+grep: gov-infra/.tools/bin/golangci-lint: binary file matches
 grep: gov-infra/evidence/DOC-4-output.log: input file is also the output
 OK

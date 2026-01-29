@@ -1,10 +1,6 @@
 Running tests...
-# github.com/israelmalagutti/git-wrapper
-open /home/israelmalagutti/.cache/go-build/0b/0b94bd539150ac8fe30895259db8be500019a400c49fd0b8500dbcbd0a975da2-a: permission denied
-FAIL	github.com/israelmalagutti/git-wrapper [setup failed]
-# ./...
-pattern ./...: open /home/israelmalagutti/.cache/go-build/91/914cf685714f97a397a4938be8bfc820cab97c15bedeec505431cb7703b5b535-a: permission denied
-FAIL	./... [setup failed]
+?   	github.com/israelmalagutti/git-wrapper	[no test files]
+?   	github.com/israelmalagutti/git-wrapper/cmd	[no test files]
 === RUN   TestColorConstants
 === RUN   TestColorConstants/reset_code_is_correct
 === RUN   TestColorConstants/standard_colors_use_30-37_range
@@ -64,7 +60,7 @@ FAIL	./... [setup failed]
 === RUN   TestIsEnabled
 --- PASS: TestIsEnabled (0.00s)
 PASS
-ok  	github.com/israelmalagutti/git-wrapper/internal/colors	0.002s
+ok  	github.com/israelmalagutti/git-wrapper/internal/colors	(cached)
 === RUN   TestConfig
 === RUN   TestConfig/Load_returns_error_if_not_exists
 === RUN   TestConfig/NewConfig_creates_config_with_trunk
@@ -96,7 +92,7 @@ ok  	github.com/israelmalagutti/git-wrapper/internal/colors	0.002s
     --- PASS: TestMetadata/saves_and_loads_metadata (0.00s)
     --- PASS: TestMetadata/GetParent_returns_false_for_untracked (0.00s)
 PASS
-ok  	github.com/israelmalagutti/git-wrapper/internal/config	0.002s
+ok  	github.com/israelmalagutti/git-wrapper/internal/config	(cached)
 === RUN   TestIsGitRepo
 === RUN   TestIsGitRepo/returns_true_in_git_repo
 --- PASS: TestIsGitRepo (0.01s)
@@ -104,58 +100,44 @@ ok  	github.com/israelmalagutti/git-wrapper/internal/config	0.002s
 === RUN   TestNewRepo
 === RUN   TestNewRepo/creates_repo_instance
 --- PASS: TestNewRepo (0.02s)
-    --- PASS: TestNewRepo/creates_repo_instance (0.01s)
+    --- PASS: TestNewRepo/creates_repo_instance (0.00s)
 === RUN   TestGetCurrentBranch
 === RUN   TestGetCurrentBranch/returns_current_branch
---- PASS: TestGetCurrentBranch (0.03s)
+--- PASS: TestGetCurrentBranch (0.02s)
     --- PASS: TestGetCurrentBranch/returns_current_branch (0.00s)
 === RUN   TestListBranches
 === RUN   TestListBranches/lists_all_branches
-    git_test.go:115: expected 3 branches, got 0: []
---- FAIL: TestListBranches (0.03s)
-    --- FAIL: TestListBranches/lists_all_branches (0.01s)
+--- PASS: TestListBranches (0.02s)
+    --- PASS: TestListBranches/lists_all_branches (0.00s)
 === RUN   TestBranchExists
 === RUN   TestBranchExists/returns_true_for_existing_branch
-    git_test.go:128: expected true for 'main'
 === RUN   TestBranchExists/returns_false_for_non-existing_branch
---- FAIL: TestBranchExists (0.03s)
-    --- FAIL: TestBranchExists/returns_true_for_existing_branch (0.00s)
+--- PASS: TestBranchExists (0.02s)
+    --- PASS: TestBranchExists/returns_true_for_existing_branch (0.00s)
     --- PASS: TestBranchExists/returns_false_for_non-existing_branch (0.00s)
 === RUN   TestCreateBranch
 === RUN   TestCreateBranch/creates_new_branch
-    git_test.go:148: CreateBranch failed: failed to create branch new-branch: git branch new-branch failed: exit status 128
-        fatal: not a valid object name: 'main'
---- FAIL: TestCreateBranch (0.03s)
-    --- FAIL: TestCreateBranch/creates_new_branch (0.00s)
+--- PASS: TestCreateBranch (0.02s)
+    --- PASS: TestCreateBranch/creates_new_branch (0.00s)
 === RUN   TestCheckoutBranch
 === RUN   TestCheckoutBranch/switches_to_branch
-    git_test.go:167: CheckoutBranch failed: failed to checkout branch feat-checkout: git checkout feat-checkout failed: exit status 1
-        error: pathspec 'feat-checkout' did not match any file(s) known to git
 === RUN   TestCheckoutBranch/fails_for_non-existing_branch
---- FAIL: TestCheckoutBranch (0.03s)
-    --- FAIL: TestCheckoutBranch/switches_to_branch (0.00s)
+--- PASS: TestCheckoutBranch (0.02s)
+    --- PASS: TestCheckoutBranch/switches_to_branch (0.00s)
     --- PASS: TestCheckoutBranch/fails_for_non-existing_branch (0.00s)
 === RUN   TestDeleteBranch
 === RUN   TestDeleteBranch/deletes_branch
-    git_test.go:194: DeleteBranch failed: failed to delete branch to-delete: git branch -D to-delete failed: exit status 1
-        error: branch 'to-delete' not found
---- FAIL: TestDeleteBranch (0.02s)
-    --- FAIL: TestDeleteBranch/deletes_branch (0.00s)
+--- PASS: TestDeleteBranch (0.02s)
+    --- PASS: TestDeleteBranch/deletes_branch (0.00s)
 === RUN   TestGetBranchCommit
 === RUN   TestGetBranchCommit/returns_commit_SHA
-    git_test.go:212: GetBranchCommit failed: failed to get commit for branch main: git rev-parse main failed: exit status 128
-        fatal: ambiguous argument 'main': unknown revision or path not in the working tree.
-        Use '--' to separate paths from revisions, like this:
-        'git <command> [<revision>...] -- [<file>...]'
-        main
---- FAIL: TestGetBranchCommit (0.02s)
-    --- FAIL: TestGetBranchCommit/returns_commit_SHA (0.00s)
+--- PASS: TestGetBranchCommit (0.02s)
+    --- PASS: TestGetBranchCommit/returns_commit_SHA (0.00s)
 === RUN   TestRunGitCommand
 === RUN   TestRunGitCommand/runs_git_command_successfully
-    git_test.go:234: expected empty output, got 'A  README.md'
 === RUN   TestRunGitCommand/returns_error_for_invalid_command
---- FAIL: TestRunGitCommand (0.03s)
-    --- FAIL: TestRunGitCommand/runs_git_command_successfully (0.00s)
+--- PASS: TestRunGitCommand (0.02s)
+    --- PASS: TestRunGitCommand/runs_git_command_successfully (0.00s)
     --- PASS: TestRunGitCommand/returns_error_for_invalid_command (0.00s)
 === RUN   TestGetConfigPath
 === RUN   TestGetConfigPath/returns_config_path
@@ -165,7 +147,37 @@ ok  	github.com/israelmalagutti/git-wrapper/internal/config	0.002s
 === RUN   TestGetMetadataPath/returns_metadata_path
 --- PASS: TestGetMetadataPath (0.02s)
     --- PASS: TestGetMetadataPath/returns_metadata_path (0.00s)
-FAIL
-FAIL	github.com/israelmalagutti/git-wrapper/internal/git	0.282s
-FAIL
-make: *** [Makefile:76: test] Error 1
+PASS
+ok  	github.com/israelmalagutti/git-wrapper/internal/git	(cached)
+=== RUN   TestNode
+=== RUN   TestNode/node_structure
+--- PASS: TestNode (0.00s)
+    --- PASS: TestNode/node_structure (0.00s)
+=== RUN   TestStack
+=== RUN   TestStack/GetNode_returns_node
+=== RUN   TestStack/GetNode_returns_nil_for_unknown
+=== RUN   TestStack/GetParent_returns_parent_node
+=== RUN   TestStack/GetChildren_returns_children
+=== RUN   TestStack/FindPath_returns_path_from_trunk
+=== RUN   TestStack/GetStackDepth_returns_correct_depth
+=== RUN   TestStack/GetAllBranches_returns_all_branches
+--- PASS: TestStack (0.00s)
+    --- PASS: TestStack/GetNode_returns_node (0.00s)
+    --- PASS: TestStack/GetNode_returns_nil_for_unknown (0.00s)
+    --- PASS: TestStack/GetParent_returns_parent_node (0.00s)
+    --- PASS: TestStack/GetChildren_returns_children (0.00s)
+    --- PASS: TestStack/FindPath_returns_path_from_trunk (0.00s)
+    --- PASS: TestStack/GetStackDepth_returns_correct_depth (0.00s)
+    --- PASS: TestStack/GetAllBranches_returns_all_branches (0.00s)
+=== RUN   TestValidateStack
+=== RUN   TestValidateStack/valid_stack_passes
+=== RUN   TestValidateStack/detects_cycle
+--- PASS: TestValidateStack (0.00s)
+    --- PASS: TestValidateStack/valid_stack_passes (0.00s)
+    --- PASS: TestValidateStack/detects_cycle (0.00s)
+=== RUN   TestBuildStackMetadata
+=== RUN   TestBuildStackMetadata/builds_parent-child_relationships_from_metadata
+--- PASS: TestBuildStackMetadata (0.00s)
+    --- PASS: TestBuildStackMetadata/builds_parent-child_relationships_from_metadata (0.00s)
+PASS
+ok  	github.com/israelmalagutti/git-wrapper/internal/stack	(cached)

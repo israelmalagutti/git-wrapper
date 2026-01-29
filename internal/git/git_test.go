@@ -29,22 +29,62 @@ func setupTestRepo(t *testing.T) (string, func()) {
 
 	cmd := exec.Command("git", "init")
 	if err := cmd.Run(); err != nil {
-		os.Chdir(origDir)
+		if chdirErr := os.Chdir(origDir); chdirErr != nil {
+			t.Fatalf("failed to restore dir after init failure: %v", chdirErr)
+		}
 		os.RemoveAll(tmpDir)
 		t.Fatalf("failed to init git repo: %v", err)
 	}
 
-	exec.Command("git", "config", "user.email", "test@test.com").Run()
-	exec.Command("git", "config", "user.name", "Test User").Run()
+	if err := exec.Command("git", "config", "user.email", "test@test.com").Run(); err != nil {
+		if chdirErr := os.Chdir(origDir); chdirErr != nil {
+			t.Fatalf("failed to restore dir after git config failure: %v", chdirErr)
+		}
+		os.RemoveAll(tmpDir)
+		t.Fatalf("failed to set git user.email: %v", err)
+	}
+	if err := exec.Command("git", "config", "user.name", "Test User").Run(); err != nil {
+		if chdirErr := os.Chdir(origDir); chdirErr != nil {
+			t.Fatalf("failed to restore dir after git config failure: %v", chdirErr)
+		}
+		os.RemoveAll(tmpDir)
+		t.Fatalf("failed to set git user.name: %v", err)
+	}
 
 	testFile := filepath.Join(tmpDir, "README.md")
-	os.WriteFile(testFile, []byte("# Test"), 0644)
-	exec.Command("git", "add", ".").Run()
-	exec.Command("git", "commit", "-m", "Initial commit").Run()
-	exec.Command("git", "branch", "-M", "main").Run()
+	if err := os.WriteFile(testFile, []byte("# Test"), 0644); err != nil {
+		if chdirErr := os.Chdir(origDir); chdirErr != nil {
+			t.Fatalf("failed to restore dir after write failure: %v", chdirErr)
+		}
+		os.RemoveAll(tmpDir)
+		t.Fatalf("failed to write test file: %v", err)
+	}
+	if err := exec.Command("git", "add", ".").Run(); err != nil {
+		if chdirErr := os.Chdir(origDir); chdirErr != nil {
+			t.Fatalf("failed to restore dir after git add failure: %v", chdirErr)
+		}
+		os.RemoveAll(tmpDir)
+		t.Fatalf("failed to git add: %v", err)
+	}
+	if err := exec.Command("git", "commit", "-m", "Initial commit").Run(); err != nil {
+		if chdirErr := os.Chdir(origDir); chdirErr != nil {
+			t.Fatalf("failed to restore dir after git commit failure: %v", chdirErr)
+		}
+		os.RemoveAll(tmpDir)
+		t.Fatalf("failed to git commit: %v", err)
+	}
+	if err := exec.Command("git", "branch", "-M", "main").Run(); err != nil {
+		if chdirErr := os.Chdir(origDir); chdirErr != nil {
+			t.Fatalf("failed to restore dir after git branch failure: %v", chdirErr)
+		}
+		os.RemoveAll(tmpDir)
+		t.Fatalf("failed to rename branch to main: %v", err)
+	}
 
 	cleanup := func() {
-		os.Chdir(origDir)
+		if err := os.Chdir(origDir); err != nil {
+			t.Errorf("failed to restore dir: %v", err)
+		}
 		os.RemoveAll(tmpDir)
 	}
 
@@ -103,8 +143,12 @@ func TestListBranches(t *testing.T) {
 	repo, _ := NewRepo()
 
 	t.Run("lists all branches", func(t *testing.T) {
-		repo.CreateBranch("feat-1")
-		repo.CreateBranch("feat-2")
+		if err := repo.CreateBranch("feat-1"); err != nil {
+			t.Fatalf("CreateBranch feat-1 failed: %v", err)
+		}
+		if err := repo.CreateBranch("feat-2"); err != nil {
+			t.Fatalf("CreateBranch feat-2 failed: %v", err)
+		}
 
 		branches, err := repo.ListBranches()
 		if err != nil {
@@ -159,7 +203,9 @@ func TestCheckoutBranch(t *testing.T) {
 	defer cleanup()
 
 	repo, _ := NewRepo()
-	repo.CreateBranch("feat-checkout")
+	if err := repo.CreateBranch("feat-checkout"); err != nil {
+		t.Fatalf("CreateBranch failed: %v", err)
+	}
 
 	t.Run("switches to branch", func(t *testing.T) {
 		err := repo.CheckoutBranch("feat-checkout")
@@ -186,7 +232,9 @@ func TestDeleteBranch(t *testing.T) {
 	defer cleanup()
 
 	repo, _ := NewRepo()
-	repo.CreateBranch("to-delete")
+	if err := repo.CreateBranch("to-delete"); err != nil {
+		t.Fatalf("CreateBranch failed: %v", err)
+	}
 
 	t.Run("deletes branch", func(t *testing.T) {
 		err := repo.DeleteBranch("to-delete", true)

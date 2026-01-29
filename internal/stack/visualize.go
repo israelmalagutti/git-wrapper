@@ -18,11 +18,11 @@ type TreeOptions struct {
 
 // SiblingInfo tracks the position of a branch among its siblings
 type SiblingInfo struct {
-	IsFirst       bool // First sibling (topmost in output)
-	IsLast        bool // Last sibling (closest to parent)
-	IsOnlyChild   bool // Only child of parent (no junctions needed)
-	HasMoreAbove  bool // Are there siblings above this one?
-	HasMoreBelow  bool // Are there siblings below this one?
+	IsFirst      bool // First sibling (topmost in output)
+	IsLast       bool // Last sibling (closest to parent)
+	IsOnlyChild  bool // Only child of parent (no junctions needed)
+	HasMoreAbove bool // Are there siblings above this one?
+	HasMoreBelow bool // Are there siblings below this one?
 }
 
 // Commit represents a single commit in a branch
@@ -275,7 +275,9 @@ func getCommitTimestamp(repo *git.Repo, branch string) int64 {
 		return 0
 	}
 	var timestamp int64
-	fmt.Sscanf(strings.TrimSpace(output), "%d", &timestamp)
+	if _, err := fmt.Sscanf(strings.TrimSpace(output), "%d", &timestamp); err != nil {
+		return 0
+	}
 	return timestamp
 }
 

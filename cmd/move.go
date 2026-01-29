@@ -191,8 +191,12 @@ func runMove(cmd *cobra.Command, args []string) error {
 		needsCheckoutBack = true
 		if err := repo.CheckoutBranch(sourceBranch); err != nil {
 			// Restore metadata
-			metadata.UpdateParent(sourceBranch, oldParent)
-			metadata.Save(repo.GetMetadataPath())
+			if restoreErr := metadata.UpdateParent(sourceBranch, oldParent); restoreErr != nil {
+				return fmt.Errorf("failed to restore metadata after checkout error: %v (original error: %w)", restoreErr, err)
+			}
+			if saveErr := metadata.Save(repo.GetMetadataPath()); saveErr != nil {
+				return fmt.Errorf("failed to save restored metadata after checkout error: %v (original error: %w)", saveErr, err)
+			}
 			return fmt.Errorf("failed to checkout '%s': %w", sourceBranch, err)
 		}
 	}
@@ -201,12 +205,18 @@ func runMove(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Rebasing onto '%s'...\n", targetBranch)
 	if _, err := repo.RunGitCommand("rebase", targetBranch); err != nil {
 		// Rebase failed, restore old parent
-		metadata.UpdateParent(sourceBranch, oldParent)
-		metadata.Save(repo.GetMetadataPath())
+		if restoreErr := metadata.UpdateParent(sourceBranch, oldParent); restoreErr != nil {
+			return fmt.Errorf("rebase failed: %w\nFailed to restore metadata: %v", err, restoreErr)
+		}
+		if saveErr := metadata.Save(repo.GetMetadataPath()); saveErr != nil {
+			return fmt.Errorf("rebase failed: %w\nFailed to save restored metadata: %v", err, saveErr)
+		}
 
 		// Try to go back to original branch
 		if needsCheckoutBack {
-			repo.CheckoutBranch(currentBranch)
+			if checkoutErr := repo.CheckoutBranch(currentBranch); checkoutErr != nil {
+				return fmt.Errorf("rebase failed: %w\nAlso failed to return to '%s': %v", err, currentBranch, checkoutErr)
+			}
 		}
 
 		return fmt.Errorf("rebase failed: %w\nMetadata restored to original state", err)
